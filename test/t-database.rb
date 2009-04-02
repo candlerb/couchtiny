@@ -1,0 +1,365 @@
+require File.join(File.dirname(__FILE__),'test_helper')
+require 'couchtiny'
+require 'couchtiny/jsobject'
+
+class TestServer < Test::Unit::TestCase
+  should "create from server and name" do
+    server = CouchTiny::Server.new("http://192.0.2.1")
+    database = CouchTiny::Database.new(server, "foo")
+    assert_equal "http://192.0.2.1/foo", database.url
+  end
+
+  should "escape slash in database name" do
+    server = CouchTiny::Server.new("http://192.0.2.1")
+    database = CouchTiny::Database.new(server, "foo/bar")
+    assert_equal "http://192.0.2.1/foo%2Fbar", database.url
+  end
+
+  should "create from url" do
+    database = CouchTiny::Database.url("http://192.0.2.1/foo")
+    assert_equal "foo", database.name
+    assert_equal "http://192.0.2.1/foo", database.url
+    assert_equal "http://192.0.2.1", database.server.url
+  end
+    
+  should "create from url with slash and options" do
+    database = CouchTiny::Database.url("http://192.0.2.1/foo/bar", :http=>:dummy)
+    assert_equal "foo/bar", database.name
+    assert_equal "http://192.0.2.1/foo%2Fbar", database.url
+    assert_equal "http://192.0.2.1", database.server.url
+    assert_equal :dummy, database.http
+    assert_equal :dummy, database.server.http
+  end
+    
+  context "basic database tests" do
+    setup do
+      @server = CouchTiny::Server.new(SERVER_URL)
+      @database = CouchTiny::Database.new(@server, DATABASE_NAME)
+      @database.recreate_database!
+    end
+
+    should "have accessors" do
+      assert_equal @server, @database.server
+      assert_equal DATABASE_NAME, @database.name
+      assert_not_nil @database.url
+      assert_not_nil @database.http
+    end
+
+    should "get info" do
+      res = @database.info
+      assert_equal 0, res['doc_count']
+    end
+    
+    should "delete" do
+      @database.delete_database!
+      begin
+        @database.info
+        assert nil, "info on non-existent database should raise"
+      rescue
+      end
+    end    
+
+    should "create" do
+      @database.delete_database!
+      @database.create_database!
+      begin
+        @database.create_database!
+        assert nil, "create on pre-existing database should raise"
+      rescue
+      end
+    end
+
+    should "put and get (fixed id)" do
+      doc = {'foo'=>456, '_id'=>'testid'}
+      res = @database.put doc
+      assert_equal true, res['ok']
+      assert_equal 'testid', doc['_id']
+      assert_not_nil doc['_rev']
+
+      doc2 = @database.get 'testid'
+      assert_equal doc, doc2
+    end
+      
+    should "put and get (with uuid)" do
+      doc = {"foo"=>123}
+      res = @database.put doc
+      assert_equal true, res['ok']
+      assert_not_nil doc['_id']
+      assert_not_nil doc['_rev']
+
+      doc2 = @database.get doc['_id']
+      assert_equal doc, doc2
+    end
+    
+    should "put_noupdate" do
+      doc = {"foo"=>123}
+      res = @database.put_noupdate doc
+      assert_equal 1, @database.info['doc_count']
+      assert_equal true, res['ok']
+      assert_nil doc['_id']
+      assert_nil doc['_rev']
+    end
+
+    should "delete" do
+      doc = {"foo"=>123}
+      @database.put doc
+      assert_equal 1, @database.info['doc_count']
+      @database.delete doc
+      assert_equal 0, @database.info['doc_count']
+    end
+
+    should "bulk_docs" do
+      d1 = {'foo'=>111, '_id'=>'test1'}
+      d2 = {'bar'=>222}
+      @database.bulk_docs [d1,d2]
+      assert_not_nil d1['_rev']
+      assert_not_nil d2['_rev']
+      assert_equal 'test1',d1['_id']
+      assert_not_nil d2['_id']
+
+      assert_equal 2, @database.info['doc_count']
+    end
+
+    should "bulk_docs_noupdate" do
+      d1 = {'foo'=>111, '_id'=>'test1'}
+      d2 = {'bar'=>222}
+      res = @database.bulk_docs_noupdate [d1,d2]
+      assert_equal 'test1', res[0]['id']
+      assert_not_nil res[0]['rev']
+      assert_not_nil res[1]['id']
+      assert_not_nil res[1]['rev']
+      
+      assert_nil d1['_rev']
+      assert_nil d2['_rev']
+      assert_equal 'test1',d1['_id']
+      assert_nil d2['_id']
+
+      assert_equal 2, @database.info['doc_count']
+    end
+
+    should "copy to new doc" do
+      d1 = {"foo"=>123,"_id"=>"a"}
+      @database.put d1
+      assert_equal 1, @database.info['doc_count']
+      
+      @database.copy "a", "b"
+      assert_equal 2, @database.info['doc_count']
+      assert_equal 123, @database.get("b")["foo"]
+    end
+
+    should "copy and overwrite" do
+      d1 = {"foo"=>123,"_id"=>"a"}
+      @database.put d1
+      d2 = {"bar"=>456,"_id"=>"b"}
+      @database.put d2
+      assert_equal 2, @database.info['doc_count']
+      
+      @database.copy "a", "b", d2['_rev']
+      assert_equal 2, @database.info['doc_count']
+      assert_equal 123, @database.get("b")["foo"]
+    end
+
+    should "compact" do
+      d1 = {"foo"=>123}
+      d2 = {"bar"=>456}
+      d3 = {"baz"=>789}
+      # Don't use bulk_docs, or else db doesn't shrink on compaction!
+      [d1,d2,d3].each { |doc| @database.put doc }
+      @database.bulk_docs [d1,d2,d3]
+      size1 = @database.info['disk_size']
+      @database.delete(d2)
+      @database.compact!
+      while true
+        break unless @database.info['compact_running']
+        sleep 0.5
+      end
+      size2 = @database.info['disk_size']
+      assert size2<size1, "Reduced database size after compaction"
+      assert_equal 2, @database.info['doc_count']
+    end
+
+    context "all_or_nothing and conflicting revs" do
+      setup do
+        doc = {"name"=>"fred"}
+        @database.put doc
+        @id = doc['_id']
+
+        doc["name"] = "jim"
+        @database.bulk_docs_noupdate [doc], :all_or_nothing=>true
+
+        doc["name"] = "trunky"
+        @database.bulk_docs_noupdate [doc], :all_or_nothing=>true
+      end
+      
+      should "fetch one version by default" do
+        res = @database.get @id
+        assert ["jim","trunky"].include?(res['name'])
+      end
+      
+      should "fetch list of conflicts" do
+        res = @database.get @id, :conflicts=>"true"
+        assert_equal 1, res['_conflicts'].size
+      end
+      
+      should "fetch conflicting versions" do
+        res = @database.get @id, :conflicts=>"true"
+        res2 = @database.get @id, :rev=>res['_conflicts'].first
+        
+        assert_equal ["jim","trunky"], [res['name'],res2['name']].sort
+      end
+    end
+  end
+
+  context "views" do
+    setup do
+      @server = CouchTiny::Server.new(SERVER_URL)
+      @database = CouchTiny::Database.new(@server, DATABASE_NAME)
+      @database.recreate_database!
+      @doc1={"_id"=>"fred", "friend"=>"bluebottle"}
+      @doc2={"_id"=>"jim", "friend"=>"eccles"}
+      @doc3={"_id"=>"trunky", "friend"=>"moriarty"}
+      @database.bulk_docs [@doc1, @doc2, @doc3]
+    end
+    
+    should "get all_docs" do
+      res = @database.all_docs
+      assert_equal 3, res['rows'].size, "expect 3 rows"
+      assert_equal 3, res['total_rows']
+    end
+    
+    should "get all_docs with key range" do
+      res = @database.all_docs :startkey=>"a",:endkey=>"m"
+      assert_equal 2, res['rows'].size, "expect 2 rows"
+      assert_equal 3, res['total_rows']
+    end
+
+    should "get all_docs with specific keys" do
+      res = @database.all_docs :keys=>["trunky","zog","fred"]
+      assert_equal "trunky", res['rows'][0]['id']
+      assert_equal "not_found", res['rows'][1]['error']
+      assert_equal "fred", res['rows'][2]['id']
+    end
+    
+    should "get all_docs with include_docs" do
+      res = @database.all_docs :keys=>["trunky"], :include_docs=>true
+      assert_equal "trunky", res['rows'][0]['id']
+      assert_equal "moriarty", res['rows'][0]['doc']['friend']
+    end
+
+    should "get all_docs with block" do
+      docs = []
+      @database.all_docs { |doc| docs << doc }
+      assert_equal ["fred","jim","trunky"], docs.collect { |doc| doc['id'] }
+    end
+    
+    should "get all_docs with specific keys with block" do
+      docs = []
+      @database.all_docs(:keys=>["trunky","zog","fred"]) { |doc| docs << doc }
+      assert_equal "trunky", docs[0]['id']
+      assert_equal "not_found", docs[1]['error']
+      assert_equal "fred", docs[2]['id']
+    end
+
+    should "get all_docs with include_docs with block" do
+      docs = []
+      @database.all_docs(:keys=>["trunky"], :include_docs=>true) { |doc| docs << doc }
+      assert_equal 1, docs.size
+      assert_equal "trunky", docs[0]['id']
+      assert_equal "moriarty", docs[0]['doc']['friend']
+    end
+
+    should "generate temporary view" do
+      res = @database.temp_view({:map => <<MAP}, :descending=>true)
+function(doc) {
+  if (doc.friend) {
+    emit(doc.friend, null);
+  }
+}
+MAP
+      assert_equal ["moriarty","eccles","bluebottle"], res['rows'].collect { |r| r['key'] }
+    end
+
+    should "generate temporary view with block" do
+      docs = []
+      res = @database.temp_view({:map => <<MAP}, :startkey=>"d") { |doc| docs << doc }
+function(doc) {
+  if (doc.friend) {
+    emit(doc.friend, null);
+  }
+}
+MAP
+      assert_equal ["eccles","moriarty"], docs.collect { |r| r['key'] }
+    end
+
+    # We don't need to do much testing here, since all_docs exercises
+    # all the interesting stuff
+    context "named view" do
+      setup do
+        @design = {
+          "_id" => "_design/sample",
+          "views" => {
+            "testview" => {
+              "map" => <<MAP,
+function(doc) {
+  if (doc.friend) {
+    emit(doc.friend, null);
+  }
+}              
+MAP
+              "reduce" => <<REDUCE,
+function(ks, vs, co) {
+  if (co) {
+    return sum(vs);
+  } else {
+    return vs.length;
+  }
+}
+REDUCE
+            },
+          }
+        }
+        @database.put @design
+      end
+
+      should "read reduced view" do
+        res = @database.view("sample/testview")
+        assert_equal({"rows"=>["key"=>nil,"value"=>3]}, res)
+      end
+
+      should "read reduced view with key range" do
+        res = @database.view("sample/testview", :startkey=>"d")
+        assert_equal({"rows"=>["key"=>nil,"value"=>2]}, res)
+      end
+
+      should "read non-reduced view" do
+        res = @database.view("sample/testview", :reduce=>false)
+        assert_equal 3, res['rows'].size, "expect 3 rows"
+      end
+
+      should "read non-reduced view with specific keys" do
+        res = @database.view("sample/testview", :keys=>["eccles"], :reduce=>false, :include_docs=>true)
+        assert_equal 1, res['rows'].size, "expect 1 rows"
+        assert_equal "eccles", res['rows'][0]['key']
+        assert_equal "jim", res['rows'][0]['id']
+        assert_equal "jim", res['rows'][0]['doc']['_id']
+      end
+    end
+  end
+
+  context "custom parser" do
+    setup do
+      @server = CouchTiny::Server.new(SERVER_URL, :parser=>CouchTiny::JSObjectParser)
+      @database = CouchTiny::Database.new(@server, DATABASE_NAME)
+      @database.recreate_database!
+      @doc1={"_id"=>"fred", "friend"=>"bluebottle"}
+      @database.put @doc1
+    end
+
+    should "parse to extended hash" do
+      res = @database.get "fred"
+      assert_equal "fred", res._id
+      assert_equal "bluebottle", res.friend
+      assert_equal "bluebottle", res['friend']
+    end
+  end
+end

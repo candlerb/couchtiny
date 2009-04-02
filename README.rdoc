@@ -1,0 +1,42 @@
+= CouchTiny
+
+This library is a tiny CouchDB API inspired by CouchRest, aiming to be lean,
+simple to understand, and closely aligned to CouchDB's own API. It also
+provides pluggable interfaces for JSON parsing and HTTP client.
+
+== Basic operation
+
+  require 'couchtiny'
+  db = CouchTiny::Database.url("http://127.0.0.1:5984/foo")
+  db.create_database!
+
+  doc = {"hello"=>"world"}
+  db.put doc
+  puts doc['_id']
+  puts doc['_rev']
+
+  puts db.get(doc['_id'])
+
+The majority of the API is on CouchTiny::Database
+
+If you are accessing multiple databases on the same server, it is more
+efficient to share a Server object between them:
+
+  require 'couchtiny'
+  serv = CouchTiny::Server.new
+  db1 = CouchTiny::Database.new(serv, "foo")
+  db2 = CouchTiny::Database.new(serv, "bar")
+  ... etc
+
+== JSON parser plugin example
+
+Assuming you have a class which implements .parse and .unparse methods, you
+can hook it in like this:
+
+  db = CouchTiny::Database.url("http://127.0.0.1:5984/testdb",
+         :parser => CouchTiny::JSObjectParser)
+  doc = db.get("12345")
+  puts doc.foo
+
+Here, JSObjectParser makes hashes behave like Javascript objects - you can
+access them as doc.foo or doc['foo'] equally.
