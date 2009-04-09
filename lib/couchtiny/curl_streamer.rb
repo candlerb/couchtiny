@@ -20,12 +20,12 @@ module CouchTiny
     #
     # In both cases, the response['rows'] is broken up into separate objects
     # and yielded individually
-    def stream(url, body=nil) #:yields: row
+    def stream(path, body=nil) #:yields: row
       if body
         # Note: _temp_view seems to require correct Content-Type
-        args = ["curl -X POST -T - -H 'Content-Type: application/json' --silent '#{url}'","r+"]
+        args = ["curl -X POST -T - -H 'Content-Type: application/json' --silent '#{@url}#{path}'","r+"]
       else
-        args = ["curl --silent '#{url}'"]
+        args = ["curl --silent '#{@url}#{path}'"]
       end
       first = nil
       IO.popen(*args) do |view|

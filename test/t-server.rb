@@ -8,7 +8,7 @@ class TestServer < Test::Unit::TestCase
   end
 
   should "fetch uuid batches" do
-    s = CouchTiny::Server.new(SERVER_URL, :uuid_batch_size=>3)
+    s = CouchTiny::Server.new :url=>SERVER_URL, :uuid_batch_size=>3
     u1 = s.next_uuid
     u2 = s.next_uuid
     u3 = s.next_uuid
@@ -19,14 +19,14 @@ class TestServer < Test::Unit::TestCase
   end
     
   should "create with options" do
-    s = CouchTiny::Server.new "http://192.0.2.1", :http=>:dummy
+    s = CouchTiny::Server.new :url=>"http://192.0.2.1", :uuids=>:dummy
     assert_equal 'http://192.0.2.1', s.url
-    assert_equal :dummy, s.http
+    assert_equal :dummy, s.uuids
   end
 
   context "basic server tests" do
     setup do
-      @server = CouchTiny::Server.new(SERVER_URL)
+      @server = CouchTiny::Server.new :url=>SERVER_URL
     end
     
     should "have accessors" do

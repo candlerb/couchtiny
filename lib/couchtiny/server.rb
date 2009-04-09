@@ -1,5 +1,4 @@
 require 'couchtiny/utils'
-require 'couchtiny/uuids'
 
 module CouchTiny
 
@@ -8,28 +7,41 @@ module CouchTiny
 # to interact with a particular Database.
 
 class Server
-  attr_accessor :url, :http, :uuids
+  attr_accessor :http, :uuids
+
+  CONTENT_TYPE = 'application/json'.freeze
   
   # The following options can be passed:
+  #   :url::
+  #     The server URL
   #   :http::
-  #     The object used for performing HTTP transfers (methods 'get',
+  #     A replacement object for HTTP communication (methods 'get',
   #     'put', 'post', 'delete', 'copy') and JSON serialization
   #   :uuid_batch_size::
-  #     The number of uuids to request at one time
+  #     The number of uuids to request at one time (default 100)
   #   :uuids::
   #     A replacement object for allocating uuids
-  # Other options are passed to the default CouchTiny::HTTP::RestClient module
-  def initialize(url='http://127.0.0.1:5984', opt={})
-    @url = url
+  def initialize(opt={})
+    parser = opt[:parser] || (require 'json'; ::JSON)
     @http = opt[:http] || (
       require 'couchtiny/http/restclient'
-      HTTP::RestClient.new(opt)
+      url = opt[:url] || 'http://127.0.0.1:5984'
+      HTTP::RestClient.new(url, parser, :headers=>{
+        :content_type => CONTENT_TYPE,
+        :accept => CONTENT_TYPE,
+      })
     )
     @uuids = opt[:uuids] || (
+      require 'couchtiny/uuids'
       UUIDS.new(self, opt[:uuid_batch_size] || 100)
     )
   end
-
+  
+  # The base URL for this server
+  def url
+    @http.url
+  end
+  
   # Get an object representing a specific database on this server
   def database(name)
     Database.new(self, name)
@@ -42,38 +54,38 @@ class Server
     
   # Get the server info
   def info
-    @http.get(@url)
+    @http.get('/')
   end
   
   # Return array of all databases on the server
   def all_dbs
-    @http.get("#{@url}/_all_dbs")
+    @http.get('/_all_dbs')
   end
   
   # Return array of active tasks
   def active_tasks
-    @http.get("#{@url}/_active_tasks")
+    @http.get('/_active_tasks')
   end
   
   # Return server config
   def config
-    @http.get("#{@url}/_config")
+    @http.get('/_config')
   end
   
   # Return server stats
   def stats
-    @http.get("#{@url}/_stats")
+    @http.get('/_stats')
   end
   
   # Start replication. Source and target may be either "/dbname" or
   # a full URL "http://[user:pass@]127.0.0.1:5984/dbname"
   def replicate!(source, target)
-    @http.post("#{@url}/_replicate", "source"=>source, "target"=>target)
+    @http.post('/_replicate', 'source'=>source, 'target'=>target)
   end
 
   # Restart the server
   def restart!
-    @http.post("#{@url}/_restart")
+    @http.post('/_restart')
   end
 end
 end

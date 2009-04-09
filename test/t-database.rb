@@ -4,14 +4,14 @@ require 'couchtiny/jsobject'
 
 class TestServer < Test::Unit::TestCase
   should "create from server and name" do
-    server = CouchTiny::Server.new("http://192.0.2.1")
-    database = CouchTiny::Database.new(server, "foo")
+    server = CouchTiny::Server.new :url=>"http://192.0.2.1"
+    database = CouchTiny::Database.new server, "foo"
     assert_equal "http://192.0.2.1/foo", database.url
   end
 
   should "escape slash in database name" do
-    server = CouchTiny::Server.new("http://192.0.2.1")
-    database = CouchTiny::Database.new(server, "foo/bar")
+    server = CouchTiny::Server.new :url=>"http://192.0.2.1"
+    database = CouchTiny::Database.new server, "foo/bar"
     assert_equal "http://192.0.2.1/foo%2Fbar", database.url
   end
 
@@ -23,18 +23,17 @@ class TestServer < Test::Unit::TestCase
   end
     
   should "create from url with slash and options" do
-    database = CouchTiny::Database.url("http://192.0.2.1/foo/bar", :http=>:dummy)
+    database = CouchTiny::Database.url("http://192.0.2.1/foo/bar", :uuids=>:dummy)
     assert_equal "foo/bar", database.name
     assert_equal "http://192.0.2.1/foo%2Fbar", database.url
     assert_equal "http://192.0.2.1", database.server.url
-    assert_equal :dummy, database.http
-    assert_equal :dummy, database.server.http
+    assert_equal :dummy, database.server.uuids
   end
     
   context "basic database tests" do
     setup do
-      @server = CouchTiny::Server.new(SERVER_URL)
-      @database = CouchTiny::Database.new(@server, DATABASE_NAME)
+      @server = CouchTiny::Server.new :url=>SERVER_URL
+      @database = CouchTiny::Database.new @server, DATABASE_NAME
       @database.recreate_database!
     end
 
@@ -212,8 +211,8 @@ class TestServer < Test::Unit::TestCase
 
   context "views" do
     setup do
-      @server = CouchTiny::Server.new(SERVER_URL)
-      @database = CouchTiny::Database.new(@server, DATABASE_NAME)
+      @server = CouchTiny::Server.new :url=>SERVER_URL
+      @database = CouchTiny::Database.new @server, DATABASE_NAME
       @database.recreate_database!
       @doc1={"_id"=>"fred", "friend"=>"bluebottle"}
       @doc2={"_id"=>"jim", "friend"=>"eccles"}
@@ -348,8 +347,8 @@ REDUCE
 
   context "custom parser" do
     setup do
-      @server = CouchTiny::Server.new(SERVER_URL, :parser=>CouchTiny::JSObjectParser)
-      @database = CouchTiny::Database.new(@server, DATABASE_NAME)
+      @server = CouchTiny::Server.new :url=>SERVER_URL, :parser=>CouchTiny::JSObjectParser
+      @database = CouchTiny::Database.new @server, DATABASE_NAME
       @database.recreate_database!
       @doc1={"_id"=>"fred", "friend"=>"bluebottle"}
       @database.put @doc1

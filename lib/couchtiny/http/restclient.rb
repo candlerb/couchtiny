@@ -5,54 +5,52 @@ module CouchTiny
   module HTTP
     # A simple HTTP adapter using the rest-client library. Options:
     #    :parser::
-    #      The object which performs JSON serialisation (unparse) and
-    #      deserialisation (parse)
+    #      (Required) The object which performs JSON serialisation (unparse)
+    #      and deserialisation (parse)
+    #    :headers::
+    #      (Optional) headers to add to each request
     class RestClient
       include CouchTiny::CurlStreamer
-      
-      CONTENT_TYPE = 'application/json'.freeze
-      HEADERS_GET = {:accept=>CONTENT_TYPE}.freeze
-      
-      # Note that POST to _temp_view fails if we don't send
-      # Content-Type: application/json
-      HEADERS_PUT = {:accept=>CONTENT_TYPE, :content_type=>CONTENT_TYPE}.freeze
-      
-      def initialize(opt)
-        @parser = opt[:parser] || (require 'json'; ::JSON)
+      attr_reader :url, :parser
+            
+      def initialize(url, parser, opt={})
+        @url = url
+        @parser = parser || (raise "parser not specified")
+        @headers = opt[:headers] || {}
       end
       
-      def get(url)
-        parse(::RestClient.get(url, :accept=>CONTENT_TYPE))
+      def get(path)
+        parse(::RestClient.get("#{@url}#{path}", @headers))
       end
       
-      def put(url, doc=nil)
+      def put(path, doc=nil)
         doc = unparse(doc) if doc
-        parse(::RestClient.put(url, doc, doc ? HEADERS_PUT : HEADERS_GET))
+        parse(::RestClient.put("#{@url}#{path}", doc, @headers))
       end
       
-      def post(url, doc=nil)
+      def post(path, doc=nil)
         doc = unparse(doc) if doc
-        parse(::RestClient.post(url, doc, doc ? HEADERS_PUT : HEADERS_GET))
+        parse(::RestClient.post("#{@url}#{path}", doc, @headers))
       end
       
-      def delete(url)
-        parse(::RestClient.delete(url))
+      def delete(path)
+        parse(::RestClient.delete("#{@url}#{path}"))
       end
       
-      def copy(url, destination)
+      def copy(path, destination)
         parse(::RestClient::Request.execute(
           :method => :copy,
-          :url => url,
-          :headers => {:accept=>CONTENT_TYPE, 'Destination'=>destination}
+          :url => "#{@url}#{path}",
+          :headers => @headers.merge('Destination'=>destination)
         ))
       end
 
-      def parse(*args)
-        @parser.parse(*args)
+      def parse(str)
+        @parser.parse(str)
       end
       
-      def unparse(*args)
-        @parser.unparse(*args)
+      def unparse(obj)
+        @parser.unparse(obj)
       end
     end
   end

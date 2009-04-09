@@ -2,7 +2,7 @@ module CouchTiny
   # Object which keeps track of uuids for allocation
   class UUIDS
     def initialize(server, batch_size)
-      @url = "#{server.url}/_uuids?count=#{batch_size}"
+      @path = "/_uuids?count=#{batch_size}"
       @http = server.http
       @uuids = []
     end
@@ -12,7 +12,7 @@ module CouchTiny
       3.times do
         res = @uuids.pop
         return res if res
-        more = @http.get(@url)["uuids"]
+        more = @http.get(@path)["uuids"]
         @uuids.concat(more) if more
       end
       raise "Failed to obtain uuid"
