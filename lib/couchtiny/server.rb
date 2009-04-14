@@ -13,7 +13,10 @@ class Server
   
   # The following options can be passed:
   #   :url::
-  #     The server URL
+  #     The server URL, default http://127.0.0.1:5984
+  #   :parser::
+  #     The object for JSON serialization (methods 'parse', 'unparse'),
+  #     default to the JSON module
   #   :http::
   #     A replacement object for HTTP communication (methods 'get',
   #     'put', 'post', 'delete', 'copy') and JSON serialization
@@ -22,10 +25,10 @@ class Server
   #   :uuids::
   #     A replacement object for allocating uuids
   def initialize(opt={})
-    parser = opt[:parser] || (require 'json'; ::JSON)
     @http = opt[:http] || (
       require 'couchtiny/http/restclient'
       url = opt[:url] || 'http://127.0.0.1:5984'
+      parser = opt[:parser] || (require 'json'; ::JSON)
       HTTP::RestClient.new(url, parser, :headers=>{
         :content_type => CONTENT_TYPE,
         :accept => CONTENT_TYPE,
