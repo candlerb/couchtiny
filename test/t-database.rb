@@ -1,6 +1,6 @@
 require File.join(File.dirname(__FILE__),'test_helper')
 require 'couchtiny'
-require 'couchtiny/jsobject'
+require 'couchtiny/parser/jsobject'
 
 class TestServer < Test::Unit::TestCase
   should "create from server and name" do
@@ -347,7 +347,7 @@ REDUCE
 
   context "custom parser" do
     setup do
-      @server = CouchTiny::Server.new :url=>SERVER_URL, :parser=>CouchTiny::JSObjectParser
+      @server = CouchTiny::Server.new :url=>SERVER_URL, :parser=>CouchTiny::Parser::JSObject
       @database = CouchTiny::Database.new @server, DATABASE_NAME
       @database.recreate_database!
       @doc1={"_id"=>"fred", "friend"=>"bluebottle"}

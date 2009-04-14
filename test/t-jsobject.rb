@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__),'test_helper')
-require 'couchtiny/jsobject'
+require 'jsobject'
 
 class TestJSObject < Test::Unit::TestCase
   setup do
@@ -27,21 +27,5 @@ class TestJSObject < Test::Unit::TestCase
     @h.foo = 456
     assert_equal 456, @h['foo']
     assert_equal 456, @h.foo
-  end
-
-  context "JSObjectParser" do
-    setup do
-      @json = CouchTiny::JSObjectParser
-    end
-    
-    should "unparse" do
-      assert_equal '{"a":1}', @json.unparse("a"=>1)
-    end
-    
-    should "parse and extend" do
-      res = @json.parse('{"foo":{"bar":[{"baz":123}]}}')
-      assert_equal 123, res.foo.bar.first.baz
-      assert_equal 123, res['foo']['bar'][0]['baz']
-    end
   end
 end

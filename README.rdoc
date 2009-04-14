@@ -17,13 +17,17 @@ provides pluggable interfaces for JSON parsing and HTTP client.
 
   puts db.get(doc['_id'])
 
-The majority of the API is on CouchTiny::Database
+The majority of the API is on CouchTiny::Database, but the server-level
+methods can be accessed like this:
+
+  db.server.stats
+  db.server.restart!
 
 If you are accessing multiple databases on the same server, it is more
-efficient to share a Server object between them:
+efficient to share a Server object between them.
 
   require 'couchtiny'
-  serv = CouchTiny::Server.new
+  serv = CouchTiny::Server.new :url=>"http://127.0.0.1:5984"
   db1 = CouchTiny::Database.new(serv, "foo")
   db2 = CouchTiny::Database.new(serv, "bar")
   ... etc
@@ -34,9 +38,9 @@ Assuming you have a class which implements .parse and .unparse methods, you
 can hook it in like this:
 
   db = CouchTiny::Database.url("http://127.0.0.1:5984/testdb",
-         :parser => CouchTiny::JSObjectParser)
+         :parser => CouchTiny::Parser::JSObject)
   doc = db.get("12345")
   puts doc.foo
 
-Here, JSObjectParser makes hashes behave like Javascript objects - you can
-access them as doc.foo or doc['foo'] equally.
+Here, the JSObject parser makes hashes behave like Javascript objects - that
+is, you can access them as doc.foo or doc['foo'] equally.
