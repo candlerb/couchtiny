@@ -10,6 +10,7 @@ module CouchTiny
 
   class Database
     include CouchTiny::Utils
+    ATTACH_CONTENT_TYPE = "application/octet-stream".freeze
 
     attr_reader :server, :http, :name, :path
 
@@ -67,33 +68,29 @@ module CouchTiny
     end
     
     # Get a document
-    def get(docid, opt={})
-      path = "#{@path}/#{escape_docid(docid)}"
+    def get(id, opt={})
+      path = "#{@path}/#{escape_docid(id)}"
       @http.get(paramify_path(path, opt))
     end
 
-    # Save a document. Returns {"ok"=>"true", "id"=>id, "rev"=>rev} but does
-    # *not* update the _id or _rev attributes of the doc. This is useful if
-    # you wish to save the same doc to multiple databases, possibly in
-    # concurrent threads
-    def put_noupdate(doc, opt={})
-      path = "#{@path}/#{escape_docid(doc['_id'] || @server.next_uuid)}"
+    # Save a document under the given ID. Returns
+    #    {"ok"=>"true", "id"=>id, "rev"=>rev}
+    # but does *not* update the _id or _rev attributes of the doc itself.
+    # This is useful if you wish to save the same doc to multiple databases,
+    # possibly in concurrent threads
+    def _put(id, doc, opt={})
+      path = "#{@path}/#{escape_docid(id || @server.next_uuid)}"
       @http.put(paramify_path(path, opt), doc)
     end
 
     # Save a document and update its attributes
     def put(doc, opt={})
-      result = put_noupdate(doc, opt)
-      if result['ok']
-        doc['_id'] = result['id']
-        doc['_rev'] = result['rev']
-      end
-      result
+      update_rev(doc) { _put(doc['_id'], doc, opt) }
     end
     
     # Perform a bulk save of an array of docs. Returns the result structure
     # but does *not* update the _id or _rev attributes of each doc
-    def bulk_docs_noupdate(docs, opt={})
+    def _bulk_docs(docs, opt={})
       path = "#{@path}/_bulk_docs"
       body = {'docs' => docs}
       if opt.has_key?(:all_or_nothing)
@@ -107,7 +104,7 @@ module CouchTiny
     # same order as the request). You still need to check the response
     # to look for failures.
     def bulk_docs(docs, opt={})
-      result = bulk_docs_noupdate(docs, opt)
+      result = _bulk_docs(docs, opt)
       if result.is_a?(Array)
         result.each_with_index do |res,i|
           doc = docs[i]
@@ -121,27 +118,67 @@ module CouchTiny
       result
     end
 
+    # Delete a single document without updating its _rev
+    def _delete(id, rev)
+      raise "Both id and rev must be present to delete" unless id && rev
+      path = "#{@path}/#{escape_docid(id)}"
+      @http.delete(paramify_path(path, :rev=>rev))
+    end
+
     # Delete a single document. You may specify :rev=>"nnn" to override
     # the revision.
     def delete(doc, opt={})
-      id = doc['_id']
-      rev = opt[:rev] || doc['_rev']
-      raise "Both id and rev must be present to delete" unless id && rev
-      path = "#{@path}/#{escape_docid(id)}"
-      @http.delete(paramify_path(path, opt.merge(:rev=>rev)))
+      update_rev(doc) { _delete(doc['_id'], opt[:rev] || doc['_rev']) }
     end
 
     # Copy document from id1 to id2. If document with id2 already exists,
     # you need to pass rev2 as well.
     def copy(id1, id2, rev2=nil)
       src_path = "#{@path}/#{escape_docid(id1)}"
-      dst = escape_docid(id2)
+      dst = id2  # not escape_docid(id2)
       if rev2
         dst = paramify_path(dst, :rev=>rev2)
       end
       @http.copy(src_path, dst)
     end
-        
+
+    # Get an attachment from an id
+    def _get_attachment(id, attach_name, opt={})
+      path = "#{@path}/#{escape_docid(id)}/#{escape(attach_name)}"
+      # TODO: obtain content_type from the response and return it
+      @http.get(paramify_path(path, opt), true)
+    end
+
+    # Get an attachment from a doc instance
+    def get_attachment(doc, attach_name, opt={})
+      _get_attachment(doc['_id'], attach_name, opt)
+    end
+    
+    # Save an attachment without updating the doc _rev
+    def _put_attachment(id, rev, attach_name, data, content_type=ATTACH_CONTENT_TYPE)
+      path = "#{@path}/#{escape_docid(id || @server.next_uuid)}/#{escape(attach_name)}"
+      path = paramify_path(path, :rev=>rev) if rev
+      @http.put(path, data, true, content_type)
+    end
+
+    # Save an attachment onto a doc instance and update the doc _rev
+    # (and _id if this is an unsaved document)
+    def put_attachment(doc, attach_name, data, content_type=ATTACH_CONTENT_TYPE)
+      update_rev(doc) { _put_attachment(doc['_id'], doc['_rev'], attach_name, data, content_type) }
+    end
+
+    # Delete an attachment from an id
+    def _delete_attachment(id, rev, attach_name)
+      raise "Both id and rev must be present to delete attachment" unless id && rev
+      path = "#{@path}/#{escape_docid(id)}/#{escape(attach_name)}"
+      @http.delete(paramify_path(path, :rev=>rev))
+    end
+
+    # Delete an attachment and update the doc _rev
+    def delete_attachment(doc, attach_name)
+      update_rev(doc) { _delete_attachment(doc['_id'], doc['_rev'], attach_name) }
+    end
+
     # Return all docs in the database, or selected docs by passing :keys param
     def all_docs(opt={}, &blk) #:yields: row
       fetch_view("#{@path}/_all_docs", opt, &blk)
@@ -163,7 +200,8 @@ module CouchTiny
       fetch_view("#{@path}/_temp_view", opt, body, &blk)
     end
 
-  private
+    # The raw code to fetch a view-like URL, using either GET or POST
+    # (the latter if a body and/or option :keys provided)
     def fetch_view(path, opt, body=nil, &blk)
       if (keys = opt.delete(:keys))
         body ||= {}
@@ -178,6 +216,16 @@ module CouchTiny
       else
         @http.get(path)
       end
+    end
+
+  private
+    def update_rev(doc)
+      result = yield
+      if result['ok']
+        doc['_id'] ||= result['id']
+        doc['_rev'] = result['rev']
+      end
+      result
     end
 
     # Utility function: add query part to path

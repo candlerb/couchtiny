@@ -7,7 +7,7 @@ module CouchTiny
 # to interact with a particular Database.
 
 class Server
-  attr_accessor :http, :uuids
+  attr_accessor :http, :uuid_generator
 
   CONTENT_TYPE = 'application/json'.freeze
   
@@ -22,7 +22,7 @@ class Server
   #     'put', 'post', 'delete', 'copy') and JSON serialization
   #   :uuid_batch_size::
   #     The number of uuids to request at one time (default 100)
-  #   :uuids::
+  #   :uuid_generator::
   #     A replacement object for allocating uuids
   def initialize(opt={})
     @http = opt[:http] || (
@@ -34,7 +34,7 @@ class Server
         :accept => CONTENT_TYPE,
       })
     )
-    @uuids = opt[:uuids] || (
+    @uuid_generator = opt[:uuid_generator] || (
       require 'couchtiny/uuids'
       UUIDS.new(self, opt[:uuid_batch_size] || 100)
     )
@@ -52,7 +52,7 @@ class Server
   
   # Get another uuid
   def next_uuid
-    @uuids.call
+    @uuid_generator.call
   end
     
   # Get the server info

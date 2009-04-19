@@ -15,10 +15,10 @@ provides pluggable interfaces for JSON parsing and HTTP client.
   puts doc['_id']
   puts doc['_rev']
 
-  puts db.get(doc['_id'])
+  puts db.get(doc['_id']).inspect
 
-The majority of the API is on CouchTiny::Database, but the server-level
-methods can be accessed like this:
+The majority of the API is on CouchTiny::Database, but there are also
+server-level methods on CouchTiny::Server, e.g.
 
   db.server.stats
   db.server.restart!
@@ -34,8 +34,8 @@ efficient to share a Server object between them.
 
 == JSON parser plugin example
 
-Assuming you have a class which implements .parse and .unparse methods, you
-can hook it in like this:
+Assuming you have an object which implements .parse and .unparse methods,
+you can hook it in like this:
 
   db = CouchTiny::Database.url("http://127.0.0.1:5984/testdb",
          :parser => CouchTiny::Parser::JSObject)
@@ -44,3 +44,28 @@ can hook it in like this:
 
 Here, the JSObject parser makes hashes behave like Javascript objects - that
 is, you can access them as doc.foo or doc['foo'] equally.
+
+== Dependencies
+
+CouchTiny depends on the 'json' package, and also currently 'restclient'
+although I intend at some stage to have a direct Net::HTTP client which also
+supports persistent HTTP/1.1 connections and better exception handling (in
+particular, a hook to parse the exception messages which CouchDB returns in
+JSON format in the response body)
+
+== No ORM
+
+CouchTiny has no built-in 'ORM', and if I ever write one, it will be
+released as a separate add-on.
+
+I am working on the basis that having the ability to parse into a
+Javascript-like object removes much of the need for an ORM, in the same way
+that Javascript code doesn't seem to need one.
+
+I may change my mind in future if I find I am writing lots of code to
+validate parameters, or convert between strings and other Ruby object
+classes like Date/Time.
+
+== Author
+
+Brian Candler (B dot Candler at pobox.com dot com)

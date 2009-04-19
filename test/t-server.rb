@@ -12,16 +12,16 @@ class TestServer < Test::Unit::TestCase
     u1 = s.next_uuid
     u2 = s.next_uuid
     u3 = s.next_uuid
-    assert_equal 0, s.uuids.size
+    assert_equal 0, s.uuid_generator.size
     u4 = s.next_uuid
-    assert_equal 2, s.uuids.size
+    assert_equal 2, s.uuid_generator.size
     assert_equal 4, [u1,u2,u3,u4].sort.uniq.size
   end
     
   should "create with options" do
-    s = CouchTiny::Server.new :url=>"http://192.0.2.1", :uuids=>:dummy
+    s = CouchTiny::Server.new :url=>"http://192.0.2.1", :uuid_generator=>:dummy
     assert_equal 'http://192.0.2.1', s.url
-    assert_equal :dummy, s.uuids
+    assert_equal :dummy, s.uuid_generator
   end
 
   context "basic server tests" do
@@ -32,7 +32,7 @@ class TestServer < Test::Unit::TestCase
     should "have accessors" do
       assert_equal SERVER_URL, @server.url
       assert_not_nil @server.http
-      assert_not_nil @server.uuids
+      assert_not_nil @server.uuid_generator
     end
     
     should "invoke database" do
@@ -42,7 +42,7 @@ class TestServer < Test::Unit::TestCase
 
     should "default to 100 uuids" do
       @server.next_uuid
-      assert_equal 99, @server.uuids.size
+      assert_equal 99, @server.uuid_generator.size
     end
     
     should "get server info" do

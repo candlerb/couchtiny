@@ -23,11 +23,11 @@ class TestServer < Test::Unit::TestCase
   end
     
   should "create from url with slash and options" do
-    database = CouchTiny::Database.url("http://192.0.2.1/foo/bar", :uuids=>:dummy)
+    database = CouchTiny::Database.url("http://192.0.2.1/foo/bar", :uuid_generator=>:dummy)
     assert_equal "foo/bar", database.name
     assert_equal "http://192.0.2.1/foo%2Fbar", database.url
     assert_equal "http://192.0.2.1", database.server.url
-    assert_equal :dummy, database.server.uuids
+    assert_equal :dummy, database.server.uuid_generator
   end
     
   context "basic database tests" do
@@ -78,7 +78,7 @@ class TestServer < Test::Unit::TestCase
       doc2 = @database.get 'testid'
       assert_equal doc, doc2
     end
-      
+
     should "put and get (with uuid)" do
       doc = {"foo"=>123}
       res = @database.put doc
@@ -90,9 +90,20 @@ class TestServer < Test::Unit::TestCase
       assert_equal doc, doc2
     end
     
-    should "put_noupdate" do
+    should "put and get (id with slash)" do
+      doc = {'foo'=>456, '_id'=>'foo/bar'}
+      res = @database.put doc
+      assert_equal true, res['ok']
+      assert_equal 'foo/bar', doc['_id']
+      assert_not_nil doc['_rev']
+
+      doc2 = @database.get 'foo/bar'
+      assert_equal doc, doc2
+    end
+    
+    should "_put without updating _id or _rev" do
       doc = {"foo"=>123}
-      res = @database.put_noupdate doc
+      res = @database._put nil, doc
       assert_equal 1, @database.info['doc_count']
       assert_equal true, res['ok']
       assert_nil doc['_id']
@@ -103,8 +114,15 @@ class TestServer < Test::Unit::TestCase
       doc = {"foo"=>123}
       @database.put doc
       assert_equal 1, @database.info['doc_count']
+      r1 = doc['_rev']
+
       @database.delete doc
       assert_equal 0, @database.info['doc_count']
+      r2 = doc['_rev']
+
+      assert_not_nil r1
+      assert_not_nil r2
+      assert_not_equal r1, r2, "_rev should change after delete"
     end
 
     should "bulk_docs" do
@@ -119,10 +137,10 @@ class TestServer < Test::Unit::TestCase
       assert_equal 2, @database.info['doc_count']
     end
 
-    should "bulk_docs_noupdate" do
+    should "_bulk_docs without updating _id or _rev" do
       d1 = {'foo'=>111, '_id'=>'test1'}
       d2 = {'bar'=>222}
-      res = @database.bulk_docs_noupdate [d1,d2]
+      res = @database._bulk_docs [d1,d2]
       assert_equal 'test1', res[0]['id']
       assert_not_nil res[0]['rev']
       assert_not_nil res[1]['id']
@@ -158,6 +176,16 @@ class TestServer < Test::Unit::TestCase
       assert_equal 123, @database.get("b")["foo"]
     end
 
+    should "copy where docids include slash" do
+      d1 = {"foo"=>123,"_id"=>"foo/bar"}
+      @database.put d1
+      assert_equal 1, @database.info['doc_count']
+      
+      @database.copy "foo/bar", "foo/baz"
+      assert_equal 2, @database.info['doc_count']
+      assert_equal 123, @database.get("foo/baz")["foo"]
+    end
+
     should "compact" do
       d1 = {"foo"=>123}
       d2 = {"bar"=>456}
@@ -184,10 +212,10 @@ class TestServer < Test::Unit::TestCase
         @id = doc['_id']
 
         doc["name"] = "jim"
-        @database.bulk_docs_noupdate [doc], :all_or_nothing=>true
+        @database._bulk_docs [doc], :all_or_nothing=>true
 
         doc["name"] = "trunky"
-        @database.bulk_docs_noupdate [doc], :all_or_nothing=>true
+        @database._bulk_docs [doc], :all_or_nothing=>true
       end
       
       should "fetch one version by default" do
@@ -206,6 +234,53 @@ class TestServer < Test::Unit::TestCase
         
         assert_equal ["jim","trunky"], [res['name'],res2['name']].sort
       end
+    end
+  end
+
+  context "attachments" do
+    setup do
+      @server = CouchTiny::Server.new :url=>SERVER_URL
+      @database = CouchTiny::Database.new @server, DATABASE_NAME
+      @database.recreate_database!
+      @doc = {"foo"=>123}
+      @database.put @doc
+    end
+    
+    should "create and retrieve attachment (high level)" do
+      @database.put_attachment @doc, "wibble", "foobar"
+
+      res = @database.get_attachment @doc, "wibble"
+      assert_equal "foobar", res
+
+      res = @database.get @doc['_id']
+      assert_equal "application/octet-stream", res['_attachments']['wibble']['content_type']
+    end
+
+    should "create and retrieve attachment (low level)" do
+      @database._put_attachment @doc['_id'], @doc['_rev'], "wibble", "foobar"
+
+      res = @database._get_attachment @doc['_id'], "wibble"
+      assert_equal "foobar", res
+
+      res = @database.get @doc['_id']
+      assert_equal "application/octet-stream", res['_attachments']['wibble']['content_type']
+    end
+
+    should "save attachment content_type" do
+      @database.put_attachment @doc, "wibble", "foobar", "application/x-foo"
+
+      res = @database.get @doc['_id']
+      assert_equal "application/x-foo", res['_attachments']['wibble']['content_type']
+    end
+
+    should "delete attachment" do
+      @database.put_attachment @doc, "wibble", "foobar"
+      
+      @database.delete_attachment @doc, "wibble"
+      
+      assert_raises(RestClient::ResourceNotFound) {
+        @database.get_attachment @doc, "wibble"
+      }
     end
   end
 
@@ -290,6 +365,12 @@ MAP
       assert_equal ["eccles","moriarty"], docs.collect { |r| r['key'] }
     end
 
+    should "fetch_view (low level API)" do
+      res = @database.fetch_view("/#{DATABASE_NAME}/_all_docs", :startkey=>"a", :endkey=>"m")
+      assert_equal 2, res['rows'].size, "expect 2 rows"
+      assert_equal 3, res['total_rows']
+    end
+    
     # We don't need to do much testing here, since all_docs exercises
     # all the interesting stuff
     context "named view" do
