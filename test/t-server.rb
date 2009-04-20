@@ -24,6 +24,17 @@ class TestServer < Test::Unit::TestCase
     assert_equal :dummy, s.uuid_generator
   end
 
+  should "honour global options" do
+    begin
+      orig_options = CouchTiny::Server.options
+      CouchTiny::Server.options = {:uuid_generator=>:abc}
+      s = CouchTiny::Server.new
+      assert_equal :abc, s.uuid_generator
+    ensure
+      CouchTiny::Server.options = orig_options
+    end
+  end
+  
   context "basic server tests" do
     setup do
       @server = CouchTiny::Server.new :url=>SERVER_URL

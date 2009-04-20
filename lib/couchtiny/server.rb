@@ -7,6 +7,11 @@ module CouchTiny
 # to interact with a particular Database.
 
 class Server
+  @options = {}
+  class << self
+    attr_accessor :options
+  end
+
   attr_accessor :http, :uuid_generator
 
   CONTENT_TYPE = 'application/json'.freeze
@@ -25,6 +30,7 @@ class Server
   #   :uuid_generator::
   #     A replacement object for allocating uuids
   def initialize(opt={})
+    opt = self.class.options.merge(opt)
     @http = opt[:http] || (
       require 'couchtiny/http/restclient'
       url = opt[:url] || 'http://127.0.0.1:5984'

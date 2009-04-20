@@ -45,6 +45,10 @@ you can hook it in like this:
 Here, the JSObject parser makes hashes behave like Javascript objects - that
 is, you can access them as doc.foo or doc['foo'] equally.
 
+Such options can also be set globally:
+
+  CouchTiny::Server.options[:parser] = CouchTiny::Parser::JSObject
+
 == Dependencies
 
 CouchTiny depends on the 'json' package, and also currently 'restclient'
