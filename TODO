@@ -1,4 +1,3 @@
-* Design docs with slugs
 * New HTTP backend
   - parse error bodies
   - HTTP/1.1 persistent connections

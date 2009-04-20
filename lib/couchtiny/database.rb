@@ -185,24 +185,24 @@ module CouchTiny
     end
 
     # Return a view
-    def view(name, opt={}, &blk) #:yields: row
-      design, vname = name.split('/', 2)
-      fetch_view("#{@path}/_design/#{design}/_view/#{escape(vname)}", opt, &blk)
+    def view(design, vname, opt={}, &blk) #:yields: row
+      fetch_view("#{@path}/_design/#{escape(design)}/_view/#{escape(vname)}", opt, &blk)
     end
 
     # Return a temporary (aka slow) view
     #
-    #   db.temp_view({:map=>"..."}, {:include_docs=>true})
-    #   db.temp_view({:map=>"...", :reduce=>"..."}, {:startkey=>x, :endkey=>y})
-    def temp_view(funcs, opt={}, &blk) #:yields: row
-      body = {}
-      funcs.each { |k,v| body[k.to_s] = v }
-      fetch_view("#{@path}/_temp_view", opt, body, &blk)
+    #   db.temp_view("..map..", :include_docs=>true)
+    #   db.temp_view("..map..", "..reduce..", :startkey=>x, :endkey=>y)
+    def temp_view(map, *args, &blk) #:yields: row
+      opt = args.pop if args.last.instance_of?(Hash)
+      body = {'map' => map}
+      body['reduce'] = args.shift unless args.empty?
+      fetch_view("#{@path}/_temp_view", opt || {}, body, &blk)
     end
 
     # The raw code to fetch a view-like URL, using either GET or POST
     # (the latter if a body and/or option :keys provided)
-    def fetch_view(path, opt, body=nil, &blk)
+    def fetch_view(path, opt={}, body=nil, &blk)
       if (keys = opt.delete(:keys))
         body ||= {}
         body['keys'] = keys

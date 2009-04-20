@@ -343,7 +343,7 @@ class TestServer < Test::Unit::TestCase
     end
 
     should "generate temporary view" do
-      res = @database.temp_view({:map => <<MAP}, :descending=>true)
+      res = @database.temp_view(<<MAP, :descending=>true)
 function(doc) {
   if (doc.friend) {
     emit(doc.friend, null);
@@ -353,9 +353,28 @@ MAP
       assert_equal ["moriarty","eccles","bluebottle"], res['rows'].collect { |r| r['key'] }
     end
 
+    should "generate temporary view with reduce" do
+      res = @database.temp_view(<<MAP, <<REDUCE, :startkey=>"d")
+function(doc) {
+  if (doc.friend) {
+    emit(doc.friend, null);
+  }
+}
+MAP
+function(ks, vs, co) {
+  if (co) {
+    return sum(vs);
+  } else {
+    return vs.length;
+  }
+}
+REDUCE
+      assert_equal 2, res['rows'].first['value']
+    end
+
     should "generate temporary view with block" do
       docs = []
-      res = @database.temp_view({:map => <<MAP}, :startkey=>"d") { |doc| docs << doc }
+      res = @database.temp_view(<<MAP, :startkey=>"d") { |doc| docs << doc }
 function(doc) {
   if (doc.friend) {
     emit(doc.friend, null);
@@ -402,22 +421,22 @@ REDUCE
       end
 
       should "read reduced view" do
-        res = @database.view("sample/testview")
+        res = @database.view "sample", "testview"
         assert_equal({"rows"=>["key"=>nil,"value"=>3]}, res)
       end
 
       should "read reduced view with key range" do
-        res = @database.view("sample/testview", :startkey=>"d")
+        res = @database.view "sample", "testview", :startkey=>"d"
         assert_equal({"rows"=>["key"=>nil,"value"=>2]}, res)
       end
 
       should "read non-reduced view" do
-        res = @database.view("sample/testview", :reduce=>false)
+        res = @database.view "sample", "testview", :reduce=>false
         assert_equal 3, res['rows'].size, "expect 3 rows"
       end
 
       should "read non-reduced view with specific keys" do
-        res = @database.view("sample/testview", :keys=>["eccles"], :reduce=>false, :include_docs=>true)
+        res = @database.view "sample", "testview", :keys=>["eccles"], :reduce=>false, :include_docs=>true
         assert_equal 1, res['rows'].size, "expect 1 rows"
         assert_equal "eccles", res['rows'][0]['key']
         assert_equal "jim", res['rows'][0]['id']
