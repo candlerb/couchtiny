@@ -6,6 +6,7 @@ provides pluggable interfaces for JSON parsing and HTTP client.
 
 == Basic operation
 
+  require 'rubygems'
   require 'couchtiny'
   db = CouchTiny::Database.url("http://127.0.0.1:5984/foo")
   db.create_database!
@@ -26,6 +27,7 @@ server-level methods on CouchTiny::Server, e.g.
 If you are accessing multiple databases on the same server, it is more
 efficient to share a Server object between them.
 
+  require 'rubygems'
   require 'couchtiny'
   serv = CouchTiny::Server.new :url=>"http://127.0.0.1:5984"
   db1 = CouchTiny::Database.new(serv, "foo")
@@ -37,6 +39,7 @@ efficient to share a Server object between them.
 Assuming you have an object which implements .parse and .unparse methods,
 you can hook it in like this:
 
+  require 'couchtiny/parser/jsobject'
   db = CouchTiny::Database.url("http://127.0.0.1:5984/testdb",
          :parser => CouchTiny::Parser::JSObject)
   doc = db.get("12345")

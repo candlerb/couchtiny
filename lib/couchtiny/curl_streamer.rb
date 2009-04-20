@@ -22,7 +22,7 @@ module CouchTiny
     # and yielded individually
     def stream(path, body=nil) #:yields: row
       if body
-        # Note: _temp_view seems to require correct Content-Type
+        # Note: _temp_view in 0.9.0 insists on correct Content-Type
         args = ["curl -X POST -T - -H 'Content-Type: application/json' --silent '#{@url}#{path}'","r+"]
       else
         args = ["curl --silent '#{@url}#{path}'"]
