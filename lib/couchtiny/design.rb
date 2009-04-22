@@ -1,13 +1,16 @@
 require 'digest/md5'
+require 'couchtiny/delegate_doc'
 require 'couchtiny/utils'
 
 module CouchTiny
   # This class wraps a hash containing a Design document. It calculates
   # an id based on the contents, so that if the design doc changes, it is
   # stored under a new name.
+  #
+  # TODO: allow other uses of design doc, like update validation
 
-  class Design
-    attr_accessor :doc, :default_view_opts
+  class Design < DelegateDoc
+    attr_accessor :default_view_opts, :slug_prefix
     include CouchTiny::Utils
 
     def self.default_doc
@@ -15,8 +18,8 @@ module CouchTiny
     end
     
     def initialize(slug_prefix = "", doc = self.class.default_doc)
+      super(doc)
       @slug_prefix = slug_prefix
-      @doc = doc
       @default_view_opts = {}
       changed
     end
@@ -68,7 +71,7 @@ module CouchTiny
       db.view(slug, name, opt, &blk)
     end
 
-    # A useful generic reduce function
+    # A useful generic reduce function for counting objects
     REDUCE_COUNT = <<REDUCE.freeze
 function(ks, vs, co) {
   if (co) {
