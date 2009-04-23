@@ -68,6 +68,15 @@ class TestServer < Test::Unit::TestCase
       end
     end
 
+    should "refuse get with empty id" do
+      assert_raises(RuntimeError) {
+        @database.get nil
+      }
+      assert_raises(RuntimeError) {
+        @database.get ""
+      }
+    end
+
     should "put and get (fixed id)" do
       doc = {'foo'=>456, '_id'=>'testid'}
       res = @database.put doc

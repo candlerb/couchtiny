@@ -69,6 +69,7 @@ module CouchTiny
     
     # Get a document
     def get(id, opt={})
+      raise "get requires an id" if id.to_s.empty?
       path = "#{@path}/#{escape_docid(id)}"
       @http.get(paramify_path(path, opt))
     end
