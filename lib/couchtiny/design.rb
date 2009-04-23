@@ -64,7 +64,6 @@ module CouchTiny
     # instance. Creates the design document if it does not exist.
     def view_on(db, name, opt={}, &blk) #:yields: row
       opt = default_view_opts[name.to_s].merge(opt)
-      opt.delete(:reduce) if opt[:reduce] == true
       db.view(slug, name, opt, &blk)
     rescue  # TODO: only "resource not found" type errors
       db._put id, doc
