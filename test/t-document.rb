@@ -75,13 +75,13 @@ class TestDocument < Test::Unit::TestCase
     context "saved individually" do
       setup do
         @d.database = Foo.database
-        assert @d.save
-        assert @f.save
-        assert @g.save
-        assert @b.save
+        assert @d.save!
+        assert @f.save!
+        assert @g.save!
+        assert @b.save!
         assert Foo.database.put(@z)['ok']
         @u.database = Foo.database
-        assert @u.save
+        assert @u.save!
       end
 
       should "not be new_record" do
@@ -121,7 +121,7 @@ class TestDocument < Test::Unit::TestCase
         old_id = @f.id
         old_rev = @f.rev
         @f["tag"] = "wibble"
-        assert @f.save
+        assert @f.save!
         assert_equal old_id, @f.id
         assert_not_equal old_rev, @f.rev
       end
@@ -426,12 +426,12 @@ class TestDocument < Test::Unit::TestCase
     should "invoke callbacks" do
       CB.log.clear
       @foo = CB.new("hello"=>"world","idattr"=>"12345")
-      @foo.save
+      @foo.save!
       assert_equal "12345", @foo.id
       assert_equal [:before_save, :before_create, :after_create, :after_save], CB.log
 
       CB.log.clear
-      @foo.save
+      @foo.save!
       assert_equal [:before_save, :before_update, :after_update, :after_save], CB.log
 
       CB.log.clear

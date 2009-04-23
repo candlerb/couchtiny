@@ -43,7 +43,7 @@ module CouchTiny
     def after_destroy;	end
 
     # Should always return true, since all errors should become exceptions.
-    def save
+    def save!
       new = new_record?
       before_save
       new ? before_create : before_update
