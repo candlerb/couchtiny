@@ -29,15 +29,34 @@ module CouchTiny
     def id=(x);		doc['_id'] = x; end
     def rev;		doc['_rev']; end
     def rev=(x);	doc['_rev'] = x; end
+    def new_record?;	!doc['_rev']; end
     def to_param;	id; end
 
-    # Should always return true, since all errors should become exceptions
+    # Only very simple callback handling, useful for allocating ids.
+    def before_create;	end
+    def after_create;	end
+    def before_update;	end
+    def after_update;	end
+    def before_save;	end
+    def after_save;	end
+    def before_destroy;	end
+    def after_destroy;	end
+
+    # Should always return true, since all errors should become exceptions.
     def save
-      database.put(doc)['ok']
+      new = new_record?
+      before_save
+      new ? before_create : before_update
+      result = database.put(doc)['ok']
+      new ? after_create : after_update
+      after_save
+      result
     end
 
     def destroy
+      before_destroy
       database.delete(doc)['ok']
+      after_destroy
     end
 
     def get_attachment(attach_name, opt={})
@@ -189,6 +208,8 @@ module CouchTiny
         @klass.instantiate(@database.get(id, opt), @database)
       end
 
+      # TODO: callbacks. Raise exception on error(s)? Unfortunately it's
+      # hard to know how to handle - there are no longer any transactions.
       def bulk_save(docs, opt={})
         docs.each do |doc|
           doc.database = @database if doc.respond_to?(:database=)

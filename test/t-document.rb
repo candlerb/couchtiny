@@ -17,6 +17,20 @@ end
 class Bar < Foo
 end
 
+class CB < Foo
+  @@log = []
+  def self.log; @@log; end
+
+  def before_save;    @@log << :before_save; end
+  def after_save;     @@log << :after_save; end
+  def before_create;  self.id = self["idattr"]; @@log << :before_create; end
+  def after_create;   @@log << :after_create; end
+  def before_update;  @@log << :before_update; end
+  def after_update;   @@log << :after_update; end
+  def before_destroy; @@log << :before_destroy; end
+  def after_destroy;  @@log << :after_destroy; end
+end
+
 class Unattached < CouchTiny::Document
   # no use_database here
 end
@@ -38,6 +52,10 @@ class TestDocument < Test::Unit::TestCase
       @b = Bar.new("tag"=>"c")
       @z = {"type"=>"Zog", "tag"=>"d"}           # type unrecognised
       @u = Unattached.on(:dummy).new("tag"=>"e")
+    end
+
+    should "be new_record" do
+      assert @f.new_record?
     end
 
     should "set type" do
@@ -67,6 +85,10 @@ class TestDocument < Test::Unit::TestCase
         assert Foo.database.put(@z)['ok']
         @u.database = Foo.database
         assert @u.save
+      end
+
+      should "not be new_record" do
+        assert !@f.new_record?
       end
 
       should "set database, id and rev" do
@@ -388,6 +410,36 @@ class TestDocument < Test::Unit::TestCase
           instance_variable_set :@type_name, "Bar"
         }
       end
+    end
+  end
+
+  context "Rails compatibility" do
+    should "have to_param" do
+      f = Foo.new
+      f.id = "123"
+      assert_equal "123", f.to_param
+    end
+  end
+
+  context "Callbacks" do
+    setup do
+      Foo.database.recreate_database!
+    end
+    
+    should "invoke callbacks" do
+      CB.log.clear
+      @foo = CB.new("hello"=>"world","idattr"=>"12345")
+      @foo.save
+      assert_equal "12345", @foo.id
+      assert_equal [:before_save, :before_create, :after_create, :after_save], CB.log
+
+      CB.log.clear
+      @foo.save
+      assert_equal [:before_save, :before_update, :after_update, :after_save], CB.log
+
+      CB.log.clear
+      @foo.destroy
+      assert_equal [:before_destroy, :after_destroy], CB.log
     end
   end
 end

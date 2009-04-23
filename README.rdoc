@@ -83,11 +83,11 @@ API.
   p Foo.on_db(another_db).count
 
 CouchTiny::Document doesn't expose flat "properties" (*), nor perform any
-callbacks or validation - the latter is probably best done in a
-validate_doc_update function (**). But it does allow you to associate a
-document with a database and save it back to that database; to create
-classes of documents; to associate those classes with a definable 'type'
-attribute; and to instantiate objects from views.
+validation - the latter is probably best done in a validate_doc_update
+function (**). But it does allow you to associate a document with a database
+and save it back to that database; to create classes of documents; to
+associate those classes with a definable 'type' attribute; and to
+instantiate objects from views.
 
 If you call Foo.get(id) but the retrieved document has "type":"Bar" then you
 will get an instance of Bar. Similarly, a view can return a polymorphic
