@@ -130,6 +130,19 @@ So it's better to create a separate design doc purely for
 validate_doc_update, under a fixed name, and save it at application startup
 time (or if you have a separate database per user, when the user logs in)
 
+== Compatibility problems
+
+ActiveSupport 2.3.2 and 2.3.2.1 break JSON badly. If you get the following
+error:
+
+  NoMethodError: undefined method `[]' for #<JSON::Ext::Generator::State:0xb7814eb4>
+	from /usr/local/lib/ruby/gems/1.8/gems/activesupport-2.3.2/lib/active_support/json/encoders/hash.rb:34:in `to_json'
+
+then either try using Rails HEAD, or make sure that you require active_record
+before you require couchtiny or json. To test using script/console:
+
+  >> JSON.pretty_generate({"foo"=>"bar"})
+
 == Author
 
 Brian Candler (B dot Candler at pobox.com dot com)

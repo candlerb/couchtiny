@@ -67,6 +67,9 @@ module CouchTiny
       opt = default_view_opts[name.to_s].merge(opt)
       db.view(slug, name, opt, &blk)
     rescue  # TODO: only "resource not found" type errors
+      # Note however that reading with a wrong view name will
+      # also give a 404. The following line will then give a 409
+      # error instead, which is rather confusing.
       db._put id, doc
       db.view(slug, name, opt, &blk)
     end
