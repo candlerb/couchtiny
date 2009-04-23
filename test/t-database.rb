@@ -435,6 +435,12 @@ REDUCE
         assert_equal 3, res['rows'].size, "expect 3 rows"
       end
 
+      should "read non-reduced view with block" do
+        docs = []
+        @database.view("sample", "testview", :reduce=>false) { |doc| docs << doc }
+        assert_equal 3, docs.size, "expect 3 rows"
+      end
+
       should "read non-reduced view with specific keys" do
         res = @database.view "sample", "testview", :keys=>["eccles"], :reduce=>false, :include_docs=>true
         assert_equal 1, res['rows'].size, "expect 1 rows"

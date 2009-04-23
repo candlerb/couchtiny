@@ -60,6 +60,12 @@ MAP
       assert_equal 3, res['rows'].size, "expect 3 rows"
     end
 
+    should "yield view using default options" do
+      res = []
+      @des.view_on(@database, "friends") { |r| res << r }
+      assert_equal 3, res.size, "expect 3 rows"
+    end
+
     should "override defaults" do
       res = @des.view_on @database, "friends", :reduce=>true
       assert_equal({"rows"=>["key"=>nil,"value"=>3]}, res)

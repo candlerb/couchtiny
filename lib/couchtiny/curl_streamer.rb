@@ -31,6 +31,7 @@ module CouchTiny
       IO.popen(*args) do |view|
         stream_body(view, body)
         first = view.gets
+        raise $1 if first =~ /"error":"(.*?)"/
         while line = view.gets
           row = stream_parse_line(line)
           yield row if row
