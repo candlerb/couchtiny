@@ -56,6 +56,7 @@ module CouchTiny
       doc['views'] ||= {}
       doc['views'][name] ||= {}
       doc['views'][name]['map'] = map
+      doc['views'][name].delete('reduce')
       doc['views'][name]['reduce'] = args.shift unless args.empty?
       changed
     end

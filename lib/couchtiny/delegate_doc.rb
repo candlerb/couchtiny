@@ -25,11 +25,7 @@ module CouchTiny
     end
 
     def method_missing(m, *args, &block)
-      if @doc.respond_to?(m)
-        @doc.__send__(m, *args, &block)
-      else
-        super(m, *args, &block)
-      end
+      @doc.__send__(m, *args, &block)
     end
   end
 end

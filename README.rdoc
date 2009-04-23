@@ -4,7 +4,16 @@ This library is a tiny CouchDB API inspired by CouchRest, aiming to be lean,
 simple to understand, and closely aligned to CouchDB's own API. It also
 provides pluggable interfaces for JSON parsing and HTTP client.
 
-== Basic operation
+== Dependencies
+
+CouchTiny depends on the 'json' package, and also currently 'restclient',
+although I intend at some stage to have a replacement client based
+directly on Net::HTTP.
+
+== Low level (database-centric) API
+
+This is implemented in CouchTiny::Server and CouchTiny::Database. All
+documents are passed in and out as plain hashes.
 
   require 'rubygems'
   require 'couchtiny'
@@ -18,10 +27,7 @@ provides pluggable interfaces for JSON parsing and HTTP client.
 
   puts db.get(doc['_id']).inspect
 
-The majority of the API is on CouchTiny::Database, but there are also
-server-level methods on CouchTiny::Server, e.g.
-
-  db.server.stats
+  puts db.server.stats.inspect
   db.server.restart!
 
 If you are accessing multiple databases on the same server, it is more
@@ -34,10 +40,10 @@ efficient to share a Server object between them.
   db2 = CouchTiny::Database.new(serv, "bar")
   ... etc
 
-== JSON parser plugin example
+=== JSON parser plugin example
 
 Assuming you have an object which implements .parse and .unparse methods,
-you can hook it in like this:
+you can hook it into the low-level API like this:
 
   require 'couchtiny/parser/jsobject'
   db = CouchTiny::Database.url("http://127.0.0.1:5984/testdb",
@@ -52,26 +58,71 @@ Such options can also be set globally:
 
   CouchTiny::Server.options[:parser] = CouchTiny::Parser::JSObject
 
-== Dependencies
+== High-level (document-centric) API
 
-CouchTiny depends on the 'json' package, and also currently 'restclient'
-although I intend at some stage to have a direct Net::HTTP client which also
-supports persistent HTTP/1.1 connections and better exception handling (in
-particular, a hook to parse the exception messages which CouchDB returns in
-JSON format in the response body)
+This adds a little object sugar to CouchDB. This is an independent layer, in
+the sense that the low-level API never makes any call back to the high-level
+API.
 
-== No ORM
+=== CouchTiny::Document
 
-CouchTiny has no built-in 'ORM', and if I ever write one, it will be
-released as a separate add-on.
+  CouchTiny::Document.use_database "http://127.0.0.1:5984/foo"
+  
+  class Foo < CouchTiny::Document
+    define_view "Foo_by_bar", <<-MAP, :include_docs=>true
+      function(doc) {
+        if (doc.type == 'Foo' && doc.bar) {
+          emit(doc.bar, null);
+        }
+      }
+    MAP
+  end
 
-I am working on the basis that having the ability to parse into a
-Javascript-like object removes much of the need for an ORM, in the same way
-that Javascript code doesn't seem to need one.
+  p Foo.all
+  p Foo.view_foo_by_bar(:key=>"xxx")
+  p Foo.on_db(another_db).count
 
-I may change my mind in future if I find I am writing lots of code to
-validate parameters, or convert between strings and other Ruby object
-classes like Date/Time.
+CouchTiny::Document doesn't expose flat "properties" (*), nor perform any
+callbacks or validation - the latter is probably best done in a
+validate_doc_update function (**). But it does allow you to associate a
+document with a database and save it back to that database; to create
+classes of documents; to associate those classes with a definable 'type'
+attribute; and to instantiate objects from views.
+
+If you call Foo.get(id) but the retrieved document has "type":"Bar" then you
+will get an instance of Bar. Similarly, a view can return a polymorphic
+collection of objects, and each one will be instantiated correctly.
+
+However, Foo.all and Foo.count will count only actual instances of Foo, not
+subclasses of Foo.
+
+(*) Note that in a web framework, you can usually get away with just:
+
+  foo = Foo.get params[:id]
+  foo.merge! params[:foo]
+  foo.save
+
+=== CouchTiny::Design
+
+CouchTiny::Design is a wrapper for creating design documents, using a 'slug'
+so that when you run a new version of your program it generates a separate
+design document, allowing time for the new views to be built before
+switching over users. Note that unlike CouchRest, by default you will get
+one design doc for your whole app, not one per class. There is a single
+"all" view which lets you query and count documents by type.
+
+(**) The slugged design docs are good when modifying the views in
+applications, but not so good for validate_doc_update functions, because:
+
+(a) if there are multiple design docs with validate_doc_update they will
+*all* be used on every document; and
+
+(b) the design doc isn't saved until a view is first used, so initially the
+user may bypass validation entirely.
+
+So it's better to create a separate design doc purely for
+validate_doc_update, under a fixed name, and save it at application startup
+time (or if you have a separate database per user, when the user logs in)
 
 == Author
 

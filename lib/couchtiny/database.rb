@@ -155,10 +155,10 @@ module CouchTiny
     end
     
     # Save an attachment without updating the doc _rev
-    def _put_attachment(id, rev, attach_name, data, content_type=ATTACH_CONTENT_TYPE)
+    def _put_attachment(id, rev, attach_name, data, content_type=nil)
       path = "#{@path}/#{escape_docid(id || @server.next_uuid)}/#{escape(attach_name)}"
       path = paramify_path(path, :rev=>rev) if rev
-      @http.put(path, data, true, content_type)
+      @http.put(path, data, true, content_type || ATTACH_CONTENT_TYPE)
     end
 
     # Save an attachment onto a doc instance and update the doc _rev
