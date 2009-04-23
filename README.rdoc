@@ -102,6 +102,12 @@ subclasses of Foo.
   foo.merge! params[:foo]
   foo.save
 
+To be able to use Rails form helpers, you may get away with:
+
+  class Foo
+    auto_accessor
+  end
+
 === CouchTiny::Design
 
 CouchTiny::Design is a wrapper for creating design documents, using a 'slug'

@@ -184,6 +184,11 @@ module CouchTiny
           super
         end
       end
+      
+      # Use method_missing to make dynamic accessor-like methods
+      def auto_accessor
+        include AutoAccessor
+      end
     end
 
     @@type_to_class = {nil => self}
@@ -247,6 +252,17 @@ module CouchTiny
 
       def new(h={}, &blk)
         @klass.new(h, @database, &blk)
+      end
+    end
+    
+    module AutoAccessor #:nodoc:
+      def method_missing(meth,*rest,&blk)
+        key = meth.to_s
+        if key[-1] == ?=
+          doc[key[0..-2]] = rest.first
+        else
+          doc[key]
+        end
       end
     end
   end

@@ -9,8 +9,8 @@ class TestDelegateDoc < Test::Unit::TestCase
     end
 
     should "delegate to hash" do
-      assert @d.respond_to?(:empty?)
-      assert @d.empty?
+      assert @d.respond_to?(:has_key?)
+      assert @d.doc.empty?
     end
   end
   
@@ -29,7 +29,7 @@ class TestDelegateDoc < Test::Unit::TestCase
     end
 
     should "delegate to hash" do
-      assert !@d.empty?
+      assert @d.has_key?('foo')
       assert_equal 'bar', @d['foo']
       @d['foo'] = 'baz'
       assert_equal 'baz', @d['foo']

@@ -31,18 +31,15 @@ class CB < Foo
   def after_destroy;  @@log << :after_destroy; end
 end
 
+class AA < Foo
+  auto_accessor
+end
+
 class Unattached < CouchTiny::Document
   # no use_database here
 end
 
 class TestDocument < Test::Unit::TestCase
-  should "delegate to underlying object" do
-    js = JSObject.new
-    js.foo = "bar"
-    doc = Foo.new(js)
-    assert_equal "bar", doc.foo
-  end
-  
   context "save and load" do
     setup do
       Foo.database.recreate_database!
@@ -441,5 +438,12 @@ class TestDocument < Test::Unit::TestCase
       @foo.destroy
       assert_equal [:before_destroy, :after_destroy], CB.log
     end
+  end
+  
+  should "have auto accessor" do
+    f = AA.new
+    f.hello = "world"
+    assert_equal "world", f.hello
+    assert_equal "world", f["hello"]
   end
 end
