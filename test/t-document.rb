@@ -264,8 +264,15 @@ class TestDocument < Test::Unit::TestCase
           assert_equal 1, ds.size
           assert ds.first.is_a?(CouchTiny::Document)
           assert_equal "a", ds.first['tag']
+
+          ds = Foo.all(:key=>nil)   # another way of doing the same thing
+          assert_equal 1, ds.size
         end
-        
+
+        should "all with :all_classes" do
+          assert_equal 6, Foo.all(:all_classes => true).size
+        end
+
         should "all with options" do
           fs = Foo.all(:startkey=>"e")
           assert_equal [Foo, Foo, Unattached, CouchTiny::Document], fs.collect { |r| r.class }
@@ -348,9 +355,9 @@ class TestDocument < Test::Unit::TestCase
       end
       
       should "bulk_destroy" do
-        assert_equal 6, Foo.count(:startkey=>nil, :endkey=>{})
+        assert_equal 6, Foo.count(:all_classes => true)
         Foo.bulk_destroy [@b, @z, @u]
-        assert_equal 3, Foo.count(:startkey=>nil, :endkey=>{})
+        assert_equal 3, Foo.count(:all_classes => true)
       end
     end
   end

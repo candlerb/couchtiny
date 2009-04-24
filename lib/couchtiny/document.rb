@@ -254,7 +254,7 @@ module CouchTiny
 
       def all(opt = {}, &blk)
         opt[:include_docs] = true unless opt.has_key?(:include_docs) || opt[:reduce]
-        opt[:key] = @klass.type_name unless opt[:key] || opt[:keys] || opt[:startkey] || opt[:endkey]
+        opt[:key] = @klass.type_name unless opt.delete(:all_classes) || [:key, :keys, :startkey, :endkey].find { |k| opt.has_key?(k) }
         view("all", opt, &blk)
       end
 
