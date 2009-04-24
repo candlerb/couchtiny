@@ -23,6 +23,8 @@ module CouchTiny
       if t = self.class.type_name
         doc[self.class.type_attr] = t
       end
+      yield self if block_given?
+      after_initialize
     end
 
     def inspect
@@ -40,6 +42,7 @@ module CouchTiny
     def new_record?;	!doc['_rev']; end
     def to_param;	id; end
 
+  private
     # Only very simple callback handling, useful for allocating ids.
     def before_create;	end
     def after_create;	end
@@ -49,7 +52,10 @@ module CouchTiny
     def after_save;	end
     def before_destroy;	end
     def after_destroy;	end
+    def after_find;	end
+    def after_initialize; end
 
+  public
     # Should always return true, since all errors should become exceptions.
     def save!
       new = new_record?
@@ -93,9 +99,11 @@ module CouchTiny
 
       # Create an object of the class defined in its type attribute.
       # If no type attribute is present or value unknown, fallback to Document.
+      # (ActiveRecord falls back to the model class, but this probably doesn't
+      # make sense for CouchDB where there is only one 'table')
       def instantiate(doc = {}, db = database)
         klass = type_to_class[doc[type_attr]] || Document # ||self? ||raise?
-        klass.new(doc, db)
+        klass.new(doc, db) { |o| o.send(:after_find) }
       end
       
       # Set the default database for finder actions.

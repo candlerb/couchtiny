@@ -17,17 +17,23 @@ class Bar < Foo
 end
 
 class CB < Foo
-  @@log = []
-  def self.log; @@log; end
+  attr_reader :log
+  def initialize(h={}, db=self.class.database)
+    @log = []
+    super
+  end
 
-  def before_save;    @@log << :before_save; end
-  def after_save;     @@log << :after_save; end
-  def before_create;  self.id = self["idattr"]; @@log << :before_create; end
-  def after_create;   @@log << :after_create; end
-  def before_update;  @@log << :before_update; end
-  def after_update;   @@log << :after_update; end
-  def before_destroy; @@log << :before_destroy; end
-  def after_destroy;  @@log << :after_destroy; end
+private
+  def after_find;     @log << :after_find; end
+  def after_initialize; @log << :after_initialize; end
+  def before_save;    @log << :before_save; end
+  def after_save;     @log << :after_save; end
+  def before_create;  self.id = self["idattr"]; @log << :before_create; end
+  def after_create;   @log << :after_create; end
+  def before_update;  @log << :before_update; end
+  def after_update;   @log << :after_update; end
+  def before_destroy; @log << :before_destroy; end
+  def after_destroy;  @log << :after_destroy; end
 end
 
 class AA < Foo
@@ -436,19 +442,24 @@ class TestDocument < Test::Unit::TestCase
     end
     
     should "invoke callbacks" do
-      CB.log.clear
       @foo = CB.new("hello"=>"world","idattr"=>"12345")
+      assert_equal [:after_initialize], @foo.log
+      
+      @foo.log.clear
       @foo.save!
       assert_equal "12345", @foo.id
-      assert_equal [:before_save, :before_create, :after_create, :after_save], CB.log
+      assert_equal [:before_save, :before_create, :after_create, :after_save], @foo.log
 
-      CB.log.clear
+      @foo.log.clear
       @foo.save!
-      assert_equal [:before_save, :before_update, :after_update, :after_save], CB.log
+      assert_equal [:before_save, :before_update, :after_update, :after_save], @foo.log
 
-      CB.log.clear
+      res = CB.get "12345"
+      assert_equal [:after_find, :after_initialize], res.log
+      
+      @foo.log.clear
       @foo.destroy
-      assert_equal [:before_destroy, :after_destroy], CB.log
+      assert_equal [:before_destroy, :after_destroy], @foo.log
     end
   end
   

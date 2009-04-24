@@ -15,8 +15,8 @@ Low-level:
 
 High-level:
 
-* No properties, validations, or casts
-* Only noddy callbacks
+* No properties, validations, or casts (although you can use before_save
+  and after_find callbacks)
 * Document delegates to Hash, rather than subclasses it
 * Single design document per application, rather than class, by default
 * Single 'all' view per application, with reduce to count objects by class
