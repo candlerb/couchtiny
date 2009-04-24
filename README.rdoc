@@ -12,7 +12,7 @@ directly on Net::HTTP.
 
 == Low level (database-centric) API
 
-This is implemented in CouchTiny::Server and CouchTiny::Database. All
+This is implemented in CouchTiny::Database and CouchTiny::Server. All
 documents are passed in and out as plain hashes.
 
   require 'rubygems'
@@ -70,9 +70,9 @@ API.
 
 === CouchTiny::Document
 
-  CouchTiny::Document.use_database "http://127.0.0.1:5984/foo"
-  
   class Foo < CouchTiny::Document
+    use_database "http://127.0.0.1:5984/foo"
+
     define_view "Foo_by_bar", <<-MAP, :include_docs=>true
       function(doc) {
         if (doc.type == 'Foo' && doc.bar) {
@@ -83,8 +83,8 @@ API.
   end
 
   p Foo.all
-  p Foo.view_foo_by_bar(:key=>"xxx")
   p Foo.on_db(another_db).count
+  p Foo.view_foo_by_bar(:key=>"xxx")
 
 CouchTiny::Document doesn't expose flat "properties" (*), nor perform any
 validation - the latter is probably best done in a validate_doc_update
@@ -143,8 +143,9 @@ error:
   NoMethodError: undefined method `[]' for #<JSON::Ext::Generator::State:0xb7814eb4>
 	from /usr/local/lib/ruby/gems/1.8/gems/activesupport-2.3.2/lib/active_support/json/encoders/hash.rb:34:in `to_json'
 
-then either try using Rails HEAD, or make sure that you require active_record
-before you require couchtiny or json. To test using script/console:
+then either try using Rails HEAD, or make sure that you require
+active_support before you require couchtiny or json. To test using
+script/console:
 
   >> JSON.pretty_generate({"foo"=>"bar"})
 

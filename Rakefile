@@ -17,8 +17,9 @@ Rake::RDocTask.new { |rdoc|
   rdoc.title    = 'CouchTiny Documentation'
   rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.options << '--charset' << 'utf-8'
-  rdoc.rdoc_files.include('README.rdoc')
+  rdoc.rdoc_files.include('*.rdoc')
   rdoc.rdoc_files.include('lib/**/*.rb')
+  rdoc.main = "README.rdoc"
 }
 
 begin

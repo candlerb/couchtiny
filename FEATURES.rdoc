@@ -1,0 +1,36 @@
+= CouchTiny features
+
+Low-level:
+
+* CouchDB actions map directly to method names (e.g. GET->get, PUT->put,
+  _all_docs->all_docs)
+* Pluggable JSON interface
+* Pluggable HTTP interface
+* Pluggable UUID generator
+* Exceptions include the error/reason message returned by CouchDB
+* bulk_docs maps directly to a single HTTP call, so the results can
+  be checked
+* Can put a document without touching its _rev (useful for storing the
+  same document onto multiple databases, e.g. design docs)
+
+High-level:
+
+* No properties, validations, or casts
+* Only noddy callbacks
+* Document delegates to Hash, rather than subclasses it
+* Single design document per application, rather than class, by default
+* Single 'all' view per application, with reduce to count objects by class
+* Configurable 'type' attribute
+* 'type' attribute validated against known model names, so DB user cannot
+  instantiate arbitrary classes
+* Polymorphic views: each object is instantiated with the class in the DB
+* View with block (streamed view) yields fully instantiated objects
+* Finder methods in a separate class, so they can be cleanly requested
+  on different database instances
+
+General:
+
+* Around 25% of the size of CouchRest
+* No 'require "rubygems"'
+* No autoload
+* No monkey patches

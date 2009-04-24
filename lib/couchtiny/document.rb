@@ -156,7 +156,7 @@ module CouchTiny
       #   class Foo
       #     define_view "Foo_by_bar", <<-MAP
       #       function(doc) {
-      #         if(doc.type == 'Foo' && doc.bar) {
+      #         if(doc['#{type_attr}'] == 'Foo' && doc.bar) {
       #           emit(doc.bar, null);
       #         }
       #       }
