@@ -65,12 +65,12 @@ module CouchTiny
     # instance. Creates the design document if it does not exist.
     def view_on(db, name, opt={}, &blk) #:yields: row
       opt = default_view_opts[name.to_s].merge(opt)
+      opt.delete(:include_docs) if opt[:reduce] && !opt[:include_docs] # COUCHDB-331
       db.view(slug, name, opt, &blk)
     rescue  # TODO: only "resource not found" type errors
-      # Note however that reading with a wrong view name will
-      # also give a 404. The following line will then give a 409
-      # error instead, which is rather confusing.
-      db._put id, doc
+      # Note that you'll also get a 404 if the design doc exists but the view
+      # name was wrong. In that case the following put will fail with a 409.
+      db._put(id, doc) rescue nil
       db.view(slug, name, opt, &blk)
     end
 
