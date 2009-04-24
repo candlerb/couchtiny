@@ -25,6 +25,14 @@ module CouchTiny
       end
     end
 
+    def inspect
+      res = "#<#{self.class}:#{doc.inspect}"
+      res << " on #{database.url}" if database
+      res << ">"
+    rescue
+      super
+    end
+    
     def id;		doc['_id']; end
     def id=(x);		doc['_id'] = x; end
     def rev;		doc['_rev']; end
