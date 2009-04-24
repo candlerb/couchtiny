@@ -221,15 +221,24 @@ module CouchTiny
         @klass.instantiate(@database.get(id, opt), @database)
       end
 
-      # TODO: callbacks. Raise exception on error(s)? Unfortunately it's
-      # hard to know how to handle - there are no longer any transactions.
+      # TODO:
+      # - callbacks
+      # - raise exception on error(s)? Unfortunately it's hard to know how
+      #   to handle - there are no longer any transactions.
       def bulk_save(docs, opt={})
         docs.each do |doc|
           doc.database = @database if doc.respond_to?(:database=)
         end
         @database.bulk_docs(docs, opt)
       end
-      
+
+      def bulk_destroy(docs, opt={})
+        req = docs.collect do |doc|
+          {"_id"=>doc["_id"], "_rev"=>doc["_rev"], "_deleted"=>true}
+        end
+        @database.bulk_docs(req, opt)
+      end
+
       def view(vname, opt={}, &blk)
         raw = opt.delete(:raw) || opt[:reduce]
         if block_given?

@@ -346,6 +346,12 @@ class TestDocument < Test::Unit::TestCase
         assert_equal old_id, @f.id
         assert_not_equal old_rev, @f.rev
       end
+      
+      should "bulk_destroy" do
+        assert_equal 6, Foo.count(:startkey=>nil, :endkey=>{})
+        Foo.bulk_destroy [@b, @z, @u]
+        assert_equal 3, Foo.count(:startkey=>nil, :endkey=>{})
+      end
     end
   end
 
