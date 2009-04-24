@@ -169,12 +169,12 @@ module CouchTiny
         self::Finder.class_eval "def view_#{name.downcase}(opt={},&blk) view('#{name}',opt,&blk); end"
       end
 
-      def define_view_all
-        design_doc.define_view "all", <<-MAP, Design::REDUCE_COUNT, :reduce=>false
+      def define_view_all(map = <<-MAP, reduce = Design::REDUCE_COUNT, opt = {:reduce=>false})
         function(doc) {
           emit(doc['#{type_attr}'] || null, null);
         }
         MAP
+        design_doc.define_view "all", map, reduce, opt
       end
       
       # Direct queries to a different database instance. e.g.
