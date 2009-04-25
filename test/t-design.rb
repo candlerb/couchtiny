@@ -51,7 +51,7 @@ function(doc) {
   if (doc.friend) {
     emit(doc.friend, null);
   }
-}              
+}
 MAP
     end
 
@@ -69,6 +69,67 @@ MAP
     should "override defaults" do
       res = @des.view_on @database, "friends", :reduce=>true
       assert_equal({"rows"=>["key"=>nil,"value"=>3]}, res)
+    end
+
+    should "reduce large dataset" do
+      docs = []
+      150.times do |i|
+        docs << {"friend"=>"bluebottle"}
+        docs << {"friend"=>"eccles"}
+        docs << {"friend"=>"bluebottle"}
+        docs << {"friend"=>"moriarty"}
+      end
+      @database.bulk_docs docs
+      res = @des.view_on @database, "friends", :reduce=>true, :group=>true
+      assert_equal 3, res['rows'].size
+      counts = {}
+      res['rows'].each { |r| counts[r['key']] = r['value'] }
+      assert_equal({
+        "bluebottle" => 301,
+        "eccles" => 151,
+        "moriarty" => 151,
+      }, counts)
+    end
+  end
+
+  context "map/reduce view with low cardinality" do
+    setup do
+      @des = CouchTiny::Design.new
+      @des.define_view "friends", <<MAP, CouchTiny::Design::REDUCE_LOW_CARDINALITY
+function(doc) {
+  if (doc.friend) {
+    emit(doc.friend, null);
+  }
+}
+MAP
+    end
+
+    should "reduce small dataset" do
+      res = @des.view_on @database, "friends"
+      assert_equal 1, res['rows'].size
+      assert_equal({
+        "bluebottle" => 1,
+        "eccles" => 1,
+        "moriarty" => 1,
+      }, res['rows'].first['value'])
+    end
+
+    should "reduce large dataset" do
+      docs = []
+      150.times do |i|
+        docs << {"friend"=>"bluebottle"}
+        docs << {"friend"=>"eccles"}
+        docs << {"friend"=>"bluebottle"}
+        docs << {"friend"=>"moriarty"}
+      end
+      @database.bulk_docs docs
+      res = @des.view_on @database, "friends"
+      assert_equal 1, res['rows'].size
+      assert_equal({
+        "bluebottle" => 301,
+        "eccles" => 151,
+        "moriarty" => 151,
+      }, res['rows'].first['value'])
     end
   end
 end

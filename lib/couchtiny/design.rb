@@ -84,5 +84,27 @@ function(ks, vs, co) {
   }
 }
 REDUCE
+
+    # Experimental: a reduce optimised for low-cardinality values
+    REDUCE_LOW_CARDINALITY = <<REDUCE.freeze
+function(ks, vs, co) {
+  if (co) {
+    var result = vs.shift();
+    for (var i in vs) {
+      for (var j in vs[i]) {
+        result[j] = (result[j] || 0) + vs[i][j];
+      }
+    }
+    return result;
+  } else {
+    var result = {};
+    for (var i in ks) {
+      var key = ks[i];
+      result[key[0]] = (result[key[0]] || 0) + 1;
+    }
+    return result;
+  }
+}
+REDUCE
   end
 end
