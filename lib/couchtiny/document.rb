@@ -184,8 +184,10 @@ module CouchTiny
             emit(doc['#{type_attr}'] || null, null);
           }
           MAP
+          reduce = Design::REDUCE_LOW_CARDINALITY if reduce.nil?
+        else
+          reduce = Design::REDUCE_COUNT if reduce.nil?
         end
-        reduce = Design::REDUCE_COUNT if reduce.nil?
         design_doc.define_view "all", map, reduce, opt
       end
       
@@ -271,11 +273,14 @@ module CouchTiny
       end
 
       def count(opt = {})
-        res = all({:reduce=>true}.merge(opt))
-        case res.size
-        when 0;	0
-        when 1; res.first['value']
-        else raise "Unexpected count result: #{res.inpect}"
+        if opt.empty?
+          res = view('all', :reduce=>true)
+          (res.first['value'][@klass.type_name || 'null'] || 0) rescue 0
+        else
+          res = all({:reduce=>true}.merge(opt))
+          res.inject(0) { |total,r|
+            total + r['value'].inject(0) { |subtot,(k,v)| subtot+v }
+          }
         end
       end
 

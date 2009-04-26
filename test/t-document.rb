@@ -261,6 +261,10 @@ class TestDocument < Test::Unit::TestCase
           assert_equal 4, Foo.count(:startkey=>"e")  # gives Foo x 2, Unattached, Zog
         end
         
+        should "count all_classes" do
+          assert_equal 6, Foo.count(:all_classes=>true)
+        end
+        
         should "all" do
           fs = Foo.all
           assert_equal [Foo, Foo], fs.collect {|r| r.class}
@@ -286,10 +290,8 @@ class TestDocument < Test::Unit::TestCase
 
         # Perhaps we should have a helper function for this?
         should "count grouped" do
-          res = Foo.view "all", :reduce=>true, :group=>true
-          counts = {}
-          res.each { |r| counts[r['key']] = r['value'] }
-          assert_equal({nil=>1, 'Bar'=>1, 'Foo'=>2, 'Zog'=>1, 'Unattached'=>1}, counts)
+          counts = Foo.all(:all_classes=>true, :reduce=>true).first['value']
+          assert_equal({'null'=>1, 'Bar'=>1, 'Foo'=>2, 'Zog'=>1, 'Unattached'=>1}, counts)
         end
         
         should "work on specified database" do

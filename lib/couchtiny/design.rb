@@ -77,7 +77,7 @@ module CouchTiny
       db.view(slug, name, opt, &blk)
     end
 
-    # A useful generic reduce function for counting objects
+    # A useful generic reduce function for counting objects. Returns a Number.
     REDUCE_COUNT = <<REDUCE.freeze
 function(ks, vs, co) {
   if (co) {
@@ -88,7 +88,8 @@ function(ks, vs, co) {
 }
 REDUCE
 
-    # Experimental: a reduce optimised for low-cardinality values
+    # A reduce optimised for low-cardinality string values. Returns an
+    # Object which maps each value to its count.
     REDUCE_LOW_CARDINALITY = <<REDUCE.freeze
 function(ks, vs, co) {
   if (co) {
