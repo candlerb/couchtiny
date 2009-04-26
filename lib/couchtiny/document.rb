@@ -122,11 +122,11 @@ module CouchTiny
       # you define any views in this class. This can be used to put
       # certain classes in their own design documents.
       #   class Foo
-      #     use_design_doc Design.new("Foo-")
+      #     use_design_doc Design.new("Foo-", true)
       #   end
       #
       # To define a prefix for the whole application:
-      #   CouchTiny::Document.use_design_doc Design.new("MyAppName-")
+      #   CouchTiny::Document.use_design_doc Design.new("MyAppName-", true)
       def use_design_doc(x)
         @design_doc = x
       end

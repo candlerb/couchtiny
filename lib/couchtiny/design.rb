@@ -10,16 +10,17 @@ module CouchTiny
   # TODO: allow other uses of design doc, like update validation
 
   class Design < DelegateDoc
-    attr_accessor :default_view_opts, :slug_prefix
+    attr_accessor :default_view_opts, :name_prefix, :with_slug
     include CouchTiny::Utils
 
     def self.default_doc
       {'language'=>'javascript'}
     end
     
-    def initialize(slug_prefix = "", doc = self.class.default_doc)
+    def initialize(name = "", with_slug = false, doc = self.class.default_doc)
       super(doc)
-      @slug_prefix = slug_prefix
+      @name_prefix = name
+      @with_slug = with_slug || name.empty?
       @default_view_opts = {}
       changed
     end
@@ -35,12 +36,16 @@ module CouchTiny
         doc['views'].sort.each do |k,v|
           md5 << "#{k}/#{v['map']}#{v['reduce']}"
         end if doc['views']
-        "#{@slug_prefix}#{md5.hexdigest}"
+        md5.hexdigest
       )
     end
 
+    def name
+      @with_slug ? "#{name_prefix}#{slug}" : name_prefix
+    end
+
     def id
-      "_design/#{slug}"
+      "_design/#{name}"
     end
     
     # Define a view:
@@ -49,32 +54,32 @@ module CouchTiny
     # Any default options provided are used when invoking the view.
     # For example, you can define a reduce function but apply :reduce=>false
     # as an option, so that the reduce is only invoked when explicitly requested.
-    def define_view(name, map, *args)
-      name = name.to_s
+    def define_view(vname, map, *args)
+      vname = vname.to_s
       opt = args.pop if args.last.instance_of?(Hash)
-      default_view_opts[name] = opt || {}
+      default_view_opts[vname] = opt || {}
       doc['views'] ||= {}
-      doc['views'][name] ||= {}
-      doc['views'][name]['map'] = map
+      doc['views'][vname] ||= {}
+      doc['views'][vname]['map'] = map
       if args[0]
-        doc['views'][name]['reduce'] = args[0]
+        doc['views'][vname]['reduce'] = args[0]
       else
-        doc['views'][name].delete('reduce')
+        doc['views'][vname].delete('reduce')
       end
       changed
     end
     
     # Fetch a view using this design document on a specific database
     # instance. Creates the design document if it does not exist.
-    def view_on(db, name, opt={}, &blk) #:yields: row
-      opt = default_view_opts[name.to_s].merge(opt)
+    def view_on(db, vname, opt={}, &blk) #:yields: row
+      opt = default_view_opts[vname.to_s].merge(opt)
       opt.delete(:include_docs) if opt[:reduce] && !opt[:include_docs] # COUCHDB-331
-      db.view(slug, name, opt, &blk)
+      db.view(name, vname, opt, &blk)
     rescue  # TODO: only "resource not found" type errors
       # Note that you'll also get a 404 if the design doc exists but the view
       # name was wrong. In that case the following put will fail with a 409.
       db._put(id, doc) rescue nil
-      db.view(slug, name, opt, &blk)
+      db.view(name, vname, opt, &blk)
     end
 
     # A useful generic reduce function for counting objects. Returns a Number.

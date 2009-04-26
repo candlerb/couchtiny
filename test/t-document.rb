@@ -374,7 +374,7 @@ class TestDocument < Test::Unit::TestCase
     should "have defaults" do
       assert Foo.database.instance_of?(CouchTiny::Database)
       assert Foo.design_doc.instance_of?(CouchTiny::Design)
-      assert_equal '', Foo.design_doc.slug_prefix
+      assert_equal '', Foo.design_doc.name_prefix
       assert_equal 'type', Foo.type_attr
       assert_equal 'Foo', Foo.type_name
     end
@@ -384,13 +384,15 @@ class TestDocument < Test::Unit::TestCase
         db = Foo.class_eval { instance_variable_get :@database }
         
         Foo.use_database :dummy1
-        Foo.use_design_doc CouchTiny::Design.new('Foo-')
+        Foo.use_design_doc CouchTiny::Design.new('Foo-', true)
         Foo.use_type_attr 'my-type'
         Foo.use_type_name 'zog'
         assert_equal :dummy1, Foo.database
         assert_equal :dummy1, Bar.database
-        assert_equal 'Foo-', Foo.design_doc.slug_prefix
-        assert_equal 'Foo-', Bar.design_doc.slug_prefix
+        assert_equal 'Foo-', Foo.design_doc.name_prefix
+        assert_equal 'Foo-', Bar.design_doc.name_prefix
+        assert Foo.design_doc.with_slug
+        assert Bar.design_doc.with_slug
         assert_equal 'my-type', Foo.type_attr
         assert_equal 'my-type', Bar.type_attr
         assert_equal 'zog', Foo.type_name
@@ -408,13 +410,15 @@ class TestDocument < Test::Unit::TestCase
     should "override in subclass only" do
       begin
         Bar.use_database :dummy1
-        Bar.use_design_doc CouchTiny::Design.new('Bar-')
+        Bar.use_design_doc CouchTiny::Design.new('Bar')
         Bar.use_type_attr 'my-type'
         Bar.use_type_name 'zog'
         assert Foo.database.instance_of?(CouchTiny::Database)
         assert_equal :dummy1, Bar.database
-        assert_equal '', Foo.design_doc.slug_prefix
-        assert_equal 'Bar-', Bar.design_doc.slug_prefix
+        assert_equal '', Foo.design_doc.name_prefix
+        assert_equal 'Bar', Bar.design_doc.name_prefix
+        assert Foo.design_doc.with_slug
+        assert !Bar.design_doc.with_slug
         assert_equal 'type', Foo.type_attr
         assert_equal 'my-type', Bar.type_attr
         assert_equal 'Foo', Foo.type_name
