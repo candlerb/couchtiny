@@ -35,6 +35,30 @@ class TestDesign < Test::Unit::TestCase
     assert_not_equal id3, id4
   end
 
+  should "define map only" do
+    des = CouchTiny::Design.new
+    des.define_view "testing", "func1", {:key=>"boing"}
+    assert_equal "func1", des['views']['testing']['map']
+    assert_equal false, des['views']['testing'].has_key?('reduce')
+    assert_equal({:key=>"boing"}, des.default_view_opts['testing'])
+  end
+
+  should "define map and reduce" do
+    des = CouchTiny::Design.new
+    des.define_view "testing", "func1", "func2", {:key=>"boing"}
+    assert_equal "func1", des['views']['testing']['map']
+    assert_equal "func2", des['views']['testing']['reduce']
+    assert_equal({:key=>"boing"}, des.default_view_opts['testing'])
+  end
+
+  should "ignore reduce=nil or false" do
+    des = CouchTiny::Design.new
+    des.define_view "testing", "func1", false, {:key=>"boing"}
+    assert_equal "func1", des['views']['testing']['map']
+    assert_equal false, des['views']['testing'].has_key?('reduce')
+    assert_equal({:key=>"boing"}, des.default_view_opts['testing'])
+  end
+
   should "add a map view" do
     des = CouchTiny::Design.new
     des.define_view "friends", "function(doc) { if (doc.friend) emit(doc.friend, null); }"

@@ -19,6 +19,7 @@ High-level:
   and after_find callbacks)
 * Document delegates to Hash, rather than subclasses it
 * Single design document per application, rather than class, by default
+* Views can have :reduce=>false as a default option
 * Single 'all' view per application, with reduce to count objects by class
 * Configurable 'type' attribute
 * 'type' attribute validated against known model names, so DB user cannot

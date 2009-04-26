@@ -177,11 +177,15 @@ module CouchTiny
         self::Finder.class_eval "def view_#{name.downcase}(opt={},&blk) view('#{name}',opt,&blk); end"
       end
 
-      def define_view_all(map = <<-MAP, reduce = Design::REDUCE_COUNT, opt = {:reduce=>false})
-        function(doc) {
-          emit(doc['#{type_attr}'] || null, null);
-        }
-        MAP
+      def define_view_all(map = nil, reduce = nil, opt = {:reduce=>false})
+        if map.nil?
+          map = <<-MAP
+          function(doc) {
+            emit(doc['#{type_attr}'] || null, null);
+          }
+          MAP
+        end
+        reduce = Design::REDUCE_COUNT if reduce.nil?
         design_doc.define_view "all", map, reduce, opt
       end
       
