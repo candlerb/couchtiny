@@ -280,7 +280,13 @@ class TestDocument < Test::Unit::TestCase
         end
 
         should "all with :all_classes" do
-          assert_equal 6, Foo.all(:all_classes => true).size
+          assert_equal 6, Foo.all(:all_classes=>true).size
+        end
+
+        should "all with :include_docs=>false" do
+          fs = Foo.all(:include_docs=>false)
+          assert_equal 2, fs.size
+          assert_equal ["id","key","value"], fs.first.keys.sort
         end
 
         should "all with options" do
