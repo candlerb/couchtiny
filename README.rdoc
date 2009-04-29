@@ -54,7 +54,11 @@ you can hook it into the low-level API like this:
 Here, the JSObject parser makes hashes behave like Javascript objects - that
 is, you can access them as doc.foo or doc['foo'] equally.
 
-Such options can also be set globally:
+The HTTP backend is also pluggable. The default one uses RestClient but
+converts exceptions back to the usual Net::HTTP hierarchy and parses the
+JSON error message. This is easily replaced if you want.
+
+Such options can be set globally:
 
   CouchTiny::Server.options[:parser] = CouchTiny::Parser::JSObject
 
@@ -96,10 +100,11 @@ collection of objects, and each one will be instantiated correctly.
 However, Foo.all and Foo.count will count only actual instances of Foo, not
 subclasses of Foo.
 
-(*) Note that in a web framework, you can usually get away with just:
+(*) Note that in a web framework, you can usually get away with using
+Hash#update:
 
-  foo = Foo.get params[:id]
-  foo.merge! params[:foo]
+  foo = Foo.get(params[:id])
+  foo.update(params[:foo])
   foo.save
 
 To be able to use Rails form helpers, you may get away with:
