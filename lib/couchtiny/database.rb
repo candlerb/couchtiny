@@ -15,8 +15,8 @@ module CouchTiny
     attr_accessor :http
 
     # Create an object to represent this database.
-    #   server = CouchRest::Server.new("http://192.0.2.1:5984")
-    #   db = CouchRest::Database.new(server, "dbname")
+    #   server = CouchTiny::Server.new(:url=>"http://192.0.2.1:5984")
+    #   db = CouchTiny::Database.new(server, "dbname")
     def initialize(server, name)
       @server = server
       @http = server.http
@@ -28,7 +28,7 @@ module CouchTiny
     # However this will create a separate Server instance for each database,
     # and therefore you won't have a shared pool of uuids.
     #
-    #   db = CouchRest::Database.url("http://192.0.2.1:5984/dbname")
+    #   db = CouchTiny::Database.url("http://192.0.2.1:5984/dbname")
     def self.url(url, opt={})
       require 'uri'
       uri = URI.parse(url)
