@@ -370,8 +370,15 @@ class TestDocument < Test::Unit::TestCase
       
       should "bulk_destroy" do
         assert_equal 6, Foo.count(:all_classes => true)
-        Foo.bulk_destroy [@b, @z, @u]
-        assert_equal 3, Foo.count(:all_classes => true)
+        res = Foo.bulk_destroy [@b, @z]
+        assert_equal 2, res.size
+        res.each do |r|
+          assert r['id']
+          assert r['rev']
+          assert !r['error']
+        end
+
+        assert_equal 4, Foo.count(:all_classes => true)
       end
     end
   end

@@ -137,7 +137,11 @@ class TestServer < Test::Unit::TestCase
     should "bulk_docs" do
       d1 = {'foo'=>111, '_id'=>'test1'}
       d2 = {'bar'=>222}
-      @database.bulk_docs [d1,d2]
+      res = @database.bulk_docs [d1,d2]
+      assert_nil res[0]['error']
+      assert_nil res[1]['error']
+      
+      # doc attributes should be updated in place
       assert_not_nil d1['_rev']
       assert_not_nil d2['_rev']
       assert_equal 'test1',d1['_id']
@@ -146,14 +150,26 @@ class TestServer < Test::Unit::TestCase
       assert_equal 2, @database.info['doc_count']
     end
 
+    should "bulk_docs with error" do
+      d1 = {'foo'=>111, '_id'=>'test1'}
+      res = @database.bulk_docs [d1]
+      assert_nil res[0]['error']
+
+      d1 = {'foo'=>111, '_id'=>'test1'}
+      res = @database.bulk_docs [d1]
+      assert_equal 'conflict', res[0]['error']
+    end
+
     should "_bulk_docs without updating _id or _rev" do
       d1 = {'foo'=>111, '_id'=>'test1'}
       d2 = {'bar'=>222}
       res = @database._bulk_docs [d1,d2]
       assert_equal 'test1', res[0]['id']
       assert_not_nil res[0]['rev']
+      assert_nil res[0]['error']
       assert_not_nil res[1]['id']
       assert_not_nil res[1]['rev']
+      assert_nil res[1]['error']
       
       assert_nil d1['_rev']
       assert_nil d2['_rev']
