@@ -214,6 +214,39 @@ class TestServer < Test::Unit::TestCase
       assert_equal 2, @database.info['doc_count']
     end
 
+    should "show 400 exception" do
+      e = assert_raises(RestClient::RequestFailed) {
+        @database.all_docs(:z=>"z")
+      }
+      assert_equal '400 query_parse_error (Invalid URL parameter: "z")', e.message
+    end
+
+    # 401: RestClient::Unauthorized
+
+    should "show 404 exception" do
+      e = assert_raises(RestClient::ResourceNotFound) {
+        @database.get 'testid'
+      }
+      assert_equal '404 not_found (missing)', e.message
+    end
+
+    should "show 409 exception" do
+      doc = {'foo'=>456}
+      @database._put 'testid', doc
+      e = assert_raises(RestClient::RequestFailed) {
+        @database._put 'testid', doc
+      }
+      assert_equal '409 conflict (Document update conflict.)', e.message
+    end
+
+    # Currently this gives a 405 with no JSON body, may change in future
+    should "show exception with no body" do
+      e = assert_raises(RestClient::RequestFailed) {
+        @database.http.put "/#{DATABASE_NAME}/_bulk_docs", "[]", :content_type=>"application/octet-stream"
+      }
+      assert_equal '405 Method Not Allowed', e.message
+    end
+
     context "all_or_nothing and conflicting revs" do
       setup do
         doc = {"name"=>"fred"}
@@ -287,7 +320,7 @@ class TestServer < Test::Unit::TestCase
       
       @database.delete_attachment @doc, "wibble"
       
-      assert_raises(RestClient::ResourceNotFound) {
+      assert_raises(TEST_HTTP_NOT_FOUND) {
         @database.get_attachment @doc, "wibble"
       }
     end

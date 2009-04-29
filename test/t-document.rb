@@ -127,7 +127,7 @@ class TestDocument < Test::Unit::TestCase
 
       should "destroy" do
         @f.destroy
-        assert_raises(RestClient::ResourceNotFound) {
+        assert_raises(TEST_HTTP_NOT_FOUND) {
           Foo.get(@f.id)
         }
       end
@@ -147,7 +147,7 @@ class TestDocument < Test::Unit::TestCase
         should "destroy attachment" do
           @f.put_attachment "wibble", "foobar"
           @f.delete_attachment "wibble"
-          assert_raises(RestClient::ResourceNotFound) {
+          assert_raises(TEST_HTTP_NOT_FOUND) {
             @f.get_attachment "wibble"
           }
         end

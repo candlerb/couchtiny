@@ -1,6 +1,5 @@
 * New HTTP backend
-  - parse error bodies
   - HTTP/1.1 persistent connections
-  - use Net::HTTP exceptions (e.g. easy to catch 409)
+  - separate out 409, 412 exceptions?
 * show and list
   - http://wiki.apache.org/couchdb/Formatting_with_Show_and_List
