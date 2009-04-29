@@ -185,6 +185,10 @@ module CouchTiny
       fetch_view("#{@path}/_all_docs", opt, &blk)
     end
 
+    def all_docs_by_seq(opt={}, &blk) #:yields: row
+      fetch_view("#{@path}/_all_docs_by_seq", opt, &blk)
+    end
+
     # Return a view
     def view(design, vname, opt={}, &blk) #:yields: row
       fetch_view("#{@path}/_design/#{escape(design)}/_view/#{escape(vname)}", opt, &blk)

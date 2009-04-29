@@ -400,6 +400,12 @@ class TestServer < Test::Unit::TestCase
       assert_equal "moriarty", docs[0]['doc']['friend']
     end
 
+    should "get all_docs_by_seq" do
+      res = @database.all_docs_by_seq
+      assert_equal [1,2,3], res['rows'].collect { |r| r['key'] }
+      assert_equal 3, res['total_rows']
+    end
+    
     should "generate temporary view" do
       res = @database.temp_view(<<MAP, :descending=>true)
 function(doc) {
