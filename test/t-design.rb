@@ -152,6 +152,33 @@ MAP
       end
     end
 
+    context "map/reduce view with null reduce" do
+      setup do
+        @des.define_view "friends", <<MAP, CouchTiny::Design::REDUCE_NULL
+function(doc) {
+  if (doc.friend) {
+    emit(doc.friend, null);
+  }
+}
+MAP
+      end
+
+      should "return nil (not useful)" do
+        res = @des.view_on @database, "friends"
+        assert_equal 1, res['rows'].size
+        assert_equal nil, res['rows'].first['value']
+      end
+      
+      should "group unique keys (useful)" do
+        res = @des.view_on @database, "friends", :group=>true
+        assert_equal [
+          ["bluebottle", nil],
+          ["eccles", nil],
+          ["moriarty", nil],
+        ], res['rows'].collect { |r| [r['key'], r['value']] }
+      end
+    end
+
     context "map/reduce view with low cardinality" do
       setup do
         @des.define_view "friends", <<MAP, CouchTiny::Design::REDUCE_LOW_CARDINALITY

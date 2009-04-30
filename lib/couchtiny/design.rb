@@ -82,6 +82,12 @@ module CouchTiny
       db.view(name, vname, opt, &blk)
     end
 
+    # A null reduce function allows you to perform grouped queries
+    REDUCE_NULL = <<REDUCE.freeze
+function(ks, vs, co) {
+  return null;
+}
+REDUCE
     # A useful generic reduce function for counting objects. Returns a Number.
     REDUCE_COUNT = <<REDUCE.freeze
 function(ks, vs, co) {
