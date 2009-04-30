@@ -89,7 +89,7 @@ module CouchTiny
       def inherited(subclass)
         unless subclass.const_defined?(:Finder)
           subclass.const_set(:Finder, Class.new(self::Finder))
-          type_to_class[subclass.to_s] = subclass
+          type_to_class[subclass.name] = subclass
         end
       end
 
@@ -155,7 +155,7 @@ module CouchTiny
       end
       
       def type_name
-        defined?(@type_name) ? @type_name : self.to_s
+        defined?(@type_name) ? @type_name : self.name
       end
 
       # Define a view using map and reduce functions. Note that it is
