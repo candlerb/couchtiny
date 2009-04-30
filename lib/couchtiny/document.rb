@@ -162,7 +162,7 @@ module CouchTiny
       # up to you to apply a class filter. e.g.
       #
       #   class Foo
-      #     define_view "Foo_by_bar", <<-MAP
+      #     define_view "by_bar", <<-MAP
       #       function(doc) {
       #         if(doc['#{type_attr}'] == 'Foo' && doc.bar) {
       #           emit(doc.bar, null);
@@ -171,10 +171,12 @@ module CouchTiny
       #     MAP
       #   end
       #
-      #   Foo.view_foo_by_bar :key=>123
-      def define_view(name, map, *args)
-        design_doc.define_view(name, map, *args)
-        self::Finder.class_eval "def view_#{name.downcase}(opt={},&blk) view('#{name}',opt,&blk); end"
+      #   Foo.view_by_bar :key=>123
+      #
+      # The view is called "Foo_by_bar"
+      def define_view(vname, map, *args)
+        design_doc.define_view("#{name}_#{vname}", map, *args)
+        self::Finder.class_eval "def view_#{vname}(opt={},&blk) view('#{name}_#{vname}',opt,&blk); end"
       end
 
       def define_view_all(map = nil, reduce = nil, opt = {:reduce=>false})

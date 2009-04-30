@@ -174,8 +174,13 @@ class TestDocument < Test::Unit::TestCase
       end
 
       context "user defined view" do
+        should "have class in actual view name" do
+          res = Foo.view "Foo_test_by_tag"
+          assert_equal 6, res.size
+        end
+
         should "return rows" do
-          res = Foo.view "test_by_tag"
+          res = Foo.view_test_by_tag
           assert_equal 6, res.size
           assert_equal ["id","key","value"], res.first.keys.sort
           assert_equal ["a","b","b2","c","d","e"], res.collect {|r| r['key'] }
@@ -183,14 +188,14 @@ class TestDocument < Test::Unit::TestCase
 
         should "yield rows" do
           res = []
-          Foo.view("test_by_tag") { |r| res << r }
+          Foo.view_test_by_tag { |r| res << r }
           assert_equal 6, res.size
           assert_equal ["id","key","value"], res.first.keys.sort
           assert_equal ["a","b","b2","c","d","e"], res.collect {|r| r['key'] }
         end
         
         should "return docs" do
-          res = Foo.view "test_by_tag", :include_docs=>true
+          res = Foo.view_test_by_tag :include_docs=>true
           assert_equal 6, res.size
           assert_equal ["a","b","b2","c","d","e"], res.collect {|r| r['tag'] }
           assert_equal [
@@ -205,48 +210,43 @@ class TestDocument < Test::Unit::TestCase
 
         should "yield docs" do
           res = []
-          Foo.view("test_by_tag", :include_docs=>true) { |r| res << r }
+          Foo.view_test_by_tag(:include_docs=>true) { |r| res << r }
           assert_equal 6, res.size
           assert res.first.is_a?(CouchTiny::Document)
           assert_equal ["a","b","b2","c","d","e"], res.collect {|r| r['tag'] }
         end
 
         should "return raw" do
-          res = Foo.view "test_by_tag", :include_docs=>true, :raw=>true
+          res = Foo.view_test_by_tag :include_docs=>true, :raw=>true
           assert_equal 6, res.size
           assert_equal ["doc","id","key","value"], res.first.keys.sort
         end
 
         should "yield raw" do
           res = []
-          Foo.view("test_by_tag", :include_docs=>true, :raw=>true) { |r| res << r }
+          Foo.view_test_by_tag(:include_docs=>true, :raw=>true) { |r| res << r }
           assert_equal 6, res.size
           assert_equal ["doc","id","key","value"], res.first.keys.sort
         end
 
         should "set database on returned docs" do
-          res = Unattached.on(Foo.database).view "test_by_tag", :include_docs=>true, :key=>"a"
+          res = Unattached.on(Foo.database).view "Foo_test_by_tag", :include_docs=>true, :key=>"a"
           assert_equal 1, res.size
           assert_equal Foo.database, res.first.database
         end
 
         should "set database on yielded docs" do
           res = []
-          Unattached.on(Foo.database).view("test_by_tag", :include_docs=>true, :key=>"a") { |r| res << r }
+          Unattached.on(Foo.database).view("Foo_test_by_tag", :include_docs=>true, :key=>"a") { |r| res << r }
           assert_equal 1, res.size
           assert_equal Foo.database, res.first.database
         end
 
         should "return docs matching key" do
-          res = Foo.view "test_by_tag", :key=>"c", :include_docs=>true
+          res = Foo.view_test_by_tag :key=>"c", :include_docs=>true
           assert_equal 1, res.size
           assert_equal "c", res.first['tag']
           assert_equal Bar, res.first.class
-        end
-
-        should "have Finder method" do
-          res = Foo.view_test_by_tag
-          assert_equal 6, res.size
         end
       end
       
