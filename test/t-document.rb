@@ -257,8 +257,12 @@ class TestDocument < Test::Unit::TestCase
           assert_equal 1, CouchTiny::Document.on(Foo.database).count # type=nil
         end
         
+        # Note: these are quite inefficient as they force a re-reduce across
+        # the database. Better just to read the overall reduced value (see
+        # "count grouped" below) and add the elements required.
         should "count with options" do
           assert_equal 4, Foo.count(:startkey=>"e")  # gives Foo x 2, Unattached, Zog
+          assert_equal 3, Foo.count(:keys=>["Foo","Bar"], :group=>true)
         end
         
         should "count all_classes" do
@@ -292,6 +296,21 @@ class TestDocument < Test::Unit::TestCase
         should "all with options" do
           fs = Foo.all(:startkey=>"e")
           assert_equal [Foo, Foo, Unattached, CouchTiny::Document], fs.collect { |r| r.class }
+
+          res = Foo.all(:keys=>["Foo","Bar"])
+          assert_equal [Foo,Foo,Bar], res.collect {|r| r.class}
+        end
+
+        # I don't provide 'first' and 'last' methods; they are not very
+        # useful in the all view because you get the first and last by
+        # doc id, which is essentially random. Users should define their
+        # own view which emits [doc.type, doc.created_at] or similar.
+        # But here I demonstrate the usage anyway.
+        should "first and last" do
+          first = Foo.all(:limit=>1).first
+          last = Foo.all(:limit=>1, :descending=>true).first
+          assert_equal [Foo, Foo], [first.class, last.class]
+          assert_not_equal first.id, last.id
         end
 
         # Perhaps we should have a helper function for this?
