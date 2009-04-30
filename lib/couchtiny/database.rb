@@ -6,8 +6,6 @@ module CouchTiny
   # Note that any exceptions raised will come from the underlying HTTP
   # adapter, and therefore may vary dependent on which adapter is used.
 
-  # TODO: Attachments
-
   class Database
     include CouchTiny::Utils
     ATTACH_CONTENT_TYPE = "application/octet-stream".freeze

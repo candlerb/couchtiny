@@ -248,6 +248,13 @@ class TestDocument < Test::Unit::TestCase
           assert_equal "c", res.first['tag']
           assert_equal Bar, res.first.class
         end
+
+        should "return docs matching keys" do
+          res = Foo.view_test_by_tag :keys=>["c","d"], :include_docs=>true
+          assert_equal 2, res.size
+          assert_equal "c", res[0]['tag']
+          assert_equal "d", res[1]['tag']
+        end
       end
       
       context "all view" do

@@ -74,7 +74,7 @@ module CouchTiny
     def view_on(db, vname, opt={}, &blk) #:yields: row
       opt = default_view_opts[vname.to_s].merge(opt)
       opt.delete(:include_docs) if opt[:reduce] && !opt[:include_docs] # COUCHDB-331
-      db.view(name, vname, opt, &blk)
+      db.view(name, vname, opt.dup, &blk)
     rescue  # TODO: only "resource not found" type errors
       # Note that you'll also get a 404 if the design doc exists but the view
       # name was wrong. In that case the following put will fail with a 409.
