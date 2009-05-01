@@ -473,6 +473,34 @@ class TestDocument < Test::Unit::TestCase
     end
   end
 
+  context "multiple design doc versions" do
+    setup do
+      @klass = Class.new(CouchTiny::Document)
+      @klass.use_database Foo.database
+      @klass.database.recreate_database!
+    end
+    
+    should "cleanup_design_docs!" do
+      id1 = @klass.design_doc.id
+
+      @klass.define_view "view1", "function(doc){}"
+      id2 = @klass.design_doc.id
+      @klass.view_view1
+
+      @klass.define_view "view2", "function(doc){emit(null,null);}"
+      id3 = @klass.design_doc.id
+      @klass.view_view2
+      
+      assert_equal 3, [id1, id2, id3].uniq.size
+      assert_equal [id2, id3].sort,
+                   @klass.database.all_docs['rows'].map { |d| d['id'] }.sort
+      
+      @klass.cleanup_design_docs!
+      
+      assert_equal [id3], @klass.database.all_docs['rows'].map { |d| d['id'] }
+    end
+  end
+
   context "Rails compatibility" do
     should "have to_param" do
       f = Foo.new

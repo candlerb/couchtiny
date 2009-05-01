@@ -289,6 +289,20 @@ module CouchTiny
       def new(h={}, &blk)
         @klass.new(h, @database, &blk)
       end
+
+      # Delete out-of-date design docs. Don't do this until all your model
+      # classes have been loaded, or you may lose your current view data
+      def cleanup_design_docs!
+        return unless @klass.design_doc.with_slug
+        prefix = "_design/#{@klass.design_doc.name_prefix}"
+        current_id = @klass.design_doc.id
+        dds_to_delete = []
+        @database.all_docs(:startkey => prefix, :endkey => prefix+"~") do |d|
+          next if d["id"] == current_id || d["id"] !~ /\A_design\/./
+          dds_to_delete << {"_id"=>d["id"], "_rev"=>d["value"]["rev"], "_deleted"=>true}
+        end
+        @database.bulk_docs(dds_to_delete) unless dds_to_delete.empty?
+      end
     end
     
     module AutoAccessor #:nodoc:
