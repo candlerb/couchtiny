@@ -255,6 +255,8 @@ module CouchTiny
         @database.bulk_docs(req, opt)
       end
 
+      # Return a view. Note that this dereferences the ['rows'] for you,
+      # unlike CouchTiny::Database#view which gives the raw result.
       def view(vname, opt={}, &blk)
         raw = opt.delete(:raw) || opt[:reduce]
         if block_given?
