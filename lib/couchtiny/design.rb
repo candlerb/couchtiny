@@ -31,14 +31,17 @@ module CouchTiny
     end
 
     def slug
-      @slug ||= (
-        md5 = Digest::MD5.new
-        doc['views'].sort.each do |k,v|
-          md5 << "#{k}/#{v['map']}#{v['reduce']}"
-        end if doc['views']
-        md5.hexdigest
-      )
+      @slug ||= calc_slug(doc)
     end
+
+    def calc_slug(doc)
+      md5 = Digest::MD5.new
+      doc['views'].sort.each do |k,v|
+        md5 << "#{k}/#{v['map']}#{v['reduce']}"
+      end if doc['views']
+      md5.hexdigest
+    end
+    private :calc_slug
 
     def name
       @with_slug ? "#{name_prefix}#{slug}" : name_prefix
@@ -77,11 +80,24 @@ module CouchTiny
       db.view(name, vname, opt.dup, &blk)
     rescue  # TODO: only "resource not found" type errors
       # Note that you'll also get a 404 if the design doc exists but the view
-      # name was wrong. In that case the following put will fail with a 409.
-      db._put(id, doc) rescue nil
+      # name was wrong. In that case the second view call will fail.
+      update_on(db)
       db.view(name, vname, opt, &blk)
     end
 
+    # Check that the design doc is up to date on the given database,
+    # and if not, save it. (Useful when *not* using slugs in design doc names)
+    def update_on(db)
+      begin
+        prev = db.get(id)
+        if slug != calc_slug(prev)
+          db._put(id, doc.merge('_rev'=>prev['_rev']))
+        end
+      rescue RestClient::ResourceNotFound
+        db._put(id, doc)
+      end
+    end
+    
     # A null reduce function allows you to perform grouped queries
     REDUCE_NULL = <<REDUCE.freeze
 function(ks, vs, co) {

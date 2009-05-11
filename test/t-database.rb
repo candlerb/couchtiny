@@ -119,6 +119,22 @@ class TestServer < Test::Unit::TestCase
       assert_nil doc['_rev']
     end
 
+    should "_put with concurrency control" do
+      doc = {"foo"=>123}
+      res = @database._put "testdoc", doc
+      
+      doc = {"foo"=>456}
+      assert_raises(RestClient::RequestFailed) {
+        @database._put "testdoc", doc
+      }
+      
+      assert_nothing_raised{ 
+        @database._put "testdoc", doc.merge('_rev' => res['rev'])
+      }
+      # Note: couchdb 0.9.1 ignores PUT ...?rev=1-23456. However it does
+      # honour If-Match: 1-23456
+    end
+
     should "delete" do
       doc = {"foo"=>123}
       @database.put doc

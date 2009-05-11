@@ -91,6 +91,26 @@ class TestDesign < Test::Unit::TestCase
       @des = CouchTiny::Design.new
     end
     
+    should "update design doc with fixed name" do
+      @des = CouchTiny::Design.new("foobar")
+      # Initial save
+      @des.define_view "dummy", "function(doc) { emit(null,null); }"
+      @des.update_on(@database)
+      v1 = @database.get("_design/foobar")
+      assert v1['_rev']
+      
+      # Unchanged: should not affect _rev
+      @des.update_on(@database)
+      v2 = @database.get("_design/foobar")
+      assert_equal v1['_rev'], v2['_rev']
+
+      # Changed
+      @des.define_view "dummy", "function(doc) { emit('abc','def'); }"
+      @des.update_on(@database)
+      v3 = @database.get("_design/foobar")
+      assert_not_equal v1['_rev'], v3['_rev']
+    end
+    
     should "save the design doc automatically" do
       assert_equal 3, @database.all_docs['rows'].size
       @des.define_view "dummy", "function(doc) { emit(null,null); }"
