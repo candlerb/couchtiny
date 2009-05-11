@@ -17,10 +17,10 @@ module CouchTiny
       {'language'=>'javascript'}
     end
     
-    def initialize(name = "", with_slug = false, doc = self.class.default_doc)
+    def initialize(name = "", with_slug = name.empty?, doc = self.class.default_doc)
       super(doc)
       @name_prefix = name
-      @with_slug = with_slug || name.empty?
+      @with_slug = with_slug
       @default_view_opts = {}
       changed
     end
