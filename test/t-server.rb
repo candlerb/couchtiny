@@ -85,6 +85,13 @@ class TestServer < Test::Unit::TestCase
       res = @server.restart!
       assert_equal true, res['ok']
     end
+    
+    should "sleep and log" do
+      res = @server.sleep(:time=>99)
+      assert res['ok']
+      res = @server.log
+      assert_match /\?time=99/, res
+    end
 
     should "replicate" do
       db = @server.database(DATABASE_NAME)

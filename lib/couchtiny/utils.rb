@@ -22,5 +22,17 @@ module CouchTiny
       /\A_design\/(.*)/ =~ id ? "_design/#{CouchTiny::Utils.escape($1)}" : CouchTiny::Utils.escape(id)
     end
     module_function :escape_docid
+
+    def paramify_path(path, params = {})
+      if params && !params.empty?
+        query = params.collect do |k,v|
+          v = @http.unparse(v) if %w{key startkey endkey}.include?(k.to_s)
+          "#{k}=#{escape(v.to_s)}"
+        end.join("&")
+        path = "#{path}?#{query}"
+      end
+      path
+    end
+    module_function :paramify_path
   end
 end

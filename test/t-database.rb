@@ -246,6 +246,14 @@ class TestServer < Test::Unit::TestCase
       assert_equal 2, @database.info['doc_count']
     end
 
+    should "changes" do
+      d1 = {"foo"=>123}
+      @database.put d1
+      res = @database.changes
+      assert_equal Array, res['results'].class
+      assert_equal Fixnum, res['last_seq'].class
+    end
+
     should "show 400 exception" do
       e = assert_raises(RestClient::RequestFailed) {
         @database.all_docs(:z=>"z")

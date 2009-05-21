@@ -7,6 +7,7 @@ module CouchTiny
 # to interact with a particular Database.
 
 class Server
+  include CouchTiny::Utils
   @options = {}
   class << self
     attr_accessor :options
@@ -95,6 +96,16 @@ class Server
   # Restart the server
   def restart!
     @http.post('/_restart')
+  end
+
+  # Sleep (required parameter :time=>milliseconds)
+  def sleep(opt)
+    @http.get(paramify_path('/_sleep', opt))
+  end
+
+  # Get end of log (typical server defaults: :bytes=>1000, :offset=>0)
+  def log(opt = {})
+    @http.get(paramify_path('/_log', opt), true)
   end
 end
 end

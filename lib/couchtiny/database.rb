@@ -65,6 +65,11 @@ module CouchTiny
       @http.post("#{@path}/_compact")
     end
     
+    # Get changes (TODO: should this be streaming, like a view?)
+    def changes(opt={})
+      @http.get(paramify_path("#{@path}/_changes", opt))
+    end
+    
     # Get a document
     def get(id, opt={})
       raise "get requires an id" if id.to_s.empty?
@@ -229,18 +234,6 @@ module CouchTiny
         doc['_rev'] = result['rev']
       end
       result
-    end
-
-    # Utility function: add query part to path
-    def paramify_path(path, params = {})
-      if params && !params.empty?
-        query = params.collect do |k,v|
-          v = @http.unparse(v) if %w{key startkey endkey}.include?(k.to_s)
-          "#{k}=#{escape(v.to_s)}"
-        end.join("&")
-        path = "#{path}?#{query}"
-      end
-      path
     end
   end
 end
