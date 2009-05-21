@@ -80,13 +80,13 @@ class TestDocument < Test::Unit::TestCase
     context "saved individually" do
       setup do
         @d.database = Foo.database
-        assert @d.save!
-        assert @f.save!
-        assert @g.save!
-        assert @b.save!
+        assert_equal true, @d.save!
+        assert_equal true, @f.save!
+        assert_equal true, @g.save!
+        assert_equal true, @b.save!
         assert Foo.database.put(@z)['ok']
         @u.database = Foo.database
-        assert @u.save!
+        assert_equal true, @u.save!
       end
 
       should "not be new_record" do
@@ -331,6 +331,13 @@ class TestDocument < Test::Unit::TestCase
           assert_equal 1, Unattached.on(Foo.database).all.size
         end
       end
+    end
+    
+    should "create!" do
+      res = Foo.create!('_id' => 'hello')
+      assert_equal Foo, res.class
+      assert_equal 'hello', res.id
+      Foo.get('hello')
     end
     
     context "bulk save" do

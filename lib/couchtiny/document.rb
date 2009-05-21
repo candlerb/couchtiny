@@ -292,6 +292,12 @@ module CouchTiny
         @klass.new(h, @database, &blk)
       end
 
+      def create!(*args, &blk)
+        obj = new(*args, &blk)
+        obj.save!
+        obj
+      end
+
       # Delete out-of-date design docs. Don't do this until all your model
       # classes have been loaded, or you may lose your current view data
       def cleanup_design_docs!
