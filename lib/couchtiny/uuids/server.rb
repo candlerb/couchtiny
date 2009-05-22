@@ -8,7 +8,7 @@ module CouchTiny::UUIDS
       @uuids = []
     end
 
-    # Generate a uuid in a thread-safe way    
+    # Pick a uuid in a thread-safe way    
     def call
       3.times do
         res = @uuids.pop
@@ -17,6 +17,16 @@ module CouchTiny::UUIDS
         @uuids.concat(more) if more
       end
       raise "Failed to obtain uuid"
+    end
+
+    # For this class, bulk uuid generation is the same as normal generation
+    def bulk
+      self
+    end
+
+    # Yield a number of uuids
+    def generate_with_index(n=1) #:yields: uuid
+      n.times { |i| yield call, i }
     end
 
     def size
