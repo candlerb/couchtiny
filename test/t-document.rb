@@ -315,16 +315,11 @@ class TestDocument < Test::Unit::TestCase
           assert_equal [Foo,Foo,Bar], res.collect {|r| r.class}
         end
 
-        # I don't provide 'first' and 'last' methods; they are not very
-        # useful in the all view because you get the first and last by
-        # doc id, which is essentially random. Users should define their
-        # own view which emits [doc.type, doc.created_at] or similar.
-        # But here I demonstrate the usage anyway.
         should "first and last" do
-          first = Foo.all(:limit=>1).first
-          last = Foo.all(:limit=>1, :descending=>true).first
+          first = Foo.first
+          last = Foo.last
           assert_equal [Foo, Foo], [first.class, last.class]
-          assert_not_equal first.id, last.id
+          assert first.id < last.id
         end
 
         # Perhaps we should have a helper function for this?

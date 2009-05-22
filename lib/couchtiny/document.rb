@@ -304,6 +304,14 @@ module CouchTiny
         end
       end
 
+      def first(opt = {})
+        all({:limit=>1}.merge(opt)).first
+      end
+
+      def last(opt = {})
+        all({:limit=>1, :descending=>true}.merge(opt)).first
+      end
+
       def new(h={}, &blk)
         @klass.new(h, @database, &blk)
       end

@@ -3,6 +3,7 @@ module CouchTiny::UUIDS
   # Time-based uuids are very useful because:
   # * views with equal keys sort in a natural order
   # * all_docs sorts in a natural order
+  # * 'first' and 'last' are meaningful
   # * no need for separate 'created_at' attribute
   #
   # This implementation uses the top 48 bits for the time in milliseconds
