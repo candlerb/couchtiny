@@ -122,6 +122,13 @@ class TestDocument < Test::Unit::TestCase
         assert_equal "e", u["tag"]
       end
 
+      should "load in bulk" do
+        res = Foo.bulk_get :keys=>[@d.id, @f.id, @g.id, @b.id]
+        assert_equal 4, res.size
+        assert_equal ["a","b","b2","c"], res.collect { |r| r['tag'] }
+        assert_equal [CouchTiny::Document, Foo, Foo, Bar], res.collect { |r| r.class }
+      end        
+        
       should "save update" do
         old_id = @f.id
         old_rev = @f.rev

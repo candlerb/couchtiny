@@ -270,6 +270,22 @@ module CouchTiny
         end
       end
 
+      # Get multiple documents by ID, e.g. bulk_get(:keys=>["xxx","yyy"])
+      def bulk_get(opt={}, &blk)
+        opt[:include_docs] = true unless opt.has_key?(:include_docs)
+        raw = opt.delete(:raw) || opt[:reduce]
+        if block_given?
+          @database.all_docs(opt) do |r|
+            yield((!raw && r['doc']) ? @klass.instantiate(r['doc'], @database) : r)
+          end
+        else
+          res = @database.all_docs(opt)
+          return res['rows'] if raw  # do we need the stats?
+          res['rows'].collect { |r| r['doc'] ? @klass.instantiate(r['doc'], @database) : r }
+        end
+      end
+
+      # Get all docs (by default of this class only) using the global 'all' view
       def all(opt = {}, &blk)
         opt[:include_docs] = true unless opt.has_key?(:include_docs) || opt[:reduce]
         opt[:key] = @klass.type_name unless opt.delete(:all_classes) || [:key, :keys, :startkey, :endkey].find { |k| opt.has_key?(k) }
