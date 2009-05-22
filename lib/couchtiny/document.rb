@@ -237,17 +237,57 @@ module CouchTiny
         @klass.instantiate(@database.get(id, opt), @database)
       end
 
-      # TODO:
-      # - callbacks
-      # - raise exception on error(s)? Unfortunately it's hard to know how
-      #   to handle - there are no longer any transactions.
+      # Bulk save documents - returns an array of result hashes. The callbacks
+      # are invoked; any exceptions in them are returned in the result array.
+      # This is so that moving to validate_doc_update in the CouchDB backend
+      # should behave in a similar way. The record is not saved if any
+      # exception occurs in the "before" callbacks, and the "after" callbacks
+      # are only invoked if the record was successfully saved.
       def bulk_save(docs, opt={})
-        docs.each do |doc|
-          doc.database = @database if doc.respond_to?(:database=)
+        result  = Array.new(docs.size)
+        dbdocs  = []
+        dbnew   = []
+        dbindex = []
+        docs.each_with_index do |doc,i|
+          new_record = !doc['_rev']
+          begin
+            doc.instance_eval {
+              before_save if respond_to?(:before_save, true)
+              m = new_record ? :before_create : :before_update
+              send(m) if respond_to?(m, true)
+            }
+          rescue RuntimeError => e
+            result[i] = {'error'=>e.class.to_s, 'reason'=>(e.message rescue nil), 'exception'=>e}
+          else
+            dbdocs  << doc
+            dbnew   << new_record
+            dbindex << i
+          end
         end
-        @database.bulk_docs(docs, opt)
+        
+        unless dbdocs.empty?
+          dbres = @database.bulk_docs(dbdocs, opt)
+          dbdocs.each_with_index do |doc,i|
+            result[dbindex[i]] = stat = dbres[i]
+            next unless stat['rev']
+            begin
+              doc.database = @database if doc.respond_to?(:database=)
+              doc.instance_eval {
+                self.database = @database if respond_to?(:database=)
+                m = dbnew[i] ? :after_create : :after_update
+                send(m) if respond_to?(m, true)
+                after_save if respond_to?(:after_save, true)
+              }
+            rescue RuntimeError => e
+              stat.replace('error'=>e.class.to_s, 'reason'=>(e.message rescue nil), 'exception'=>e)
+            end
+          end
+        end
+
+        return result
       end
 
+      # TODO: callbacks
       def bulk_destroy(docs, opt={})
         req = docs.collect do |doc|
           {"_id"=>doc["_id"], "_rev"=>doc["_rev"], "_deleted"=>true}

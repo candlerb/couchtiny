@@ -28,7 +28,7 @@ private
   def after_initialize; @log << :after_initialize; end
   def before_save;    @log << :before_save; end
   def after_save;     @log << :after_save; end
-  def before_create;  self.id = self["idattr"]; @log << :before_create; end
+  def before_create;  self.id = self["idattr"] if self["idattr"]; @log << :before_create; end
   def after_create;   @log << :after_create; end
   def before_update;  @log << :before_update; end
   def after_update;   @log << :after_update; end
@@ -542,6 +542,71 @@ class TestDocument < Test::Unit::TestCase
       @foo.log.clear
       @foo.destroy
       assert_equal [:before_destroy, :after_destroy], @foo.log
+    end
+  end
+  
+  context "Callbacks with bulk_save" do
+    setup do
+      Foo.database.recreate_database!
+      @c1 = CB.new("val"=>1)
+      @c2 = CB.create!("val"=>2, "idattr"=>"b")
+      @c3 = CB.create!("val"=>3)
+      @c4 = CB.new("val"=>4, "idattr"=>"d")
+      [@c1, @c2, @c3, @c4].each { |c| c.log.clear }
+    end
+
+    should "invoke callbacks on successful save" do
+      assert_equal [2,3], CB.all.collect { |c| c['val'] }.sort
+      res = Foo.bulk_save [@c1, @c2, @c3, @c4]
+      res.each { |r| assert r['rev']; assert r['id'] }
+      [@c1, @c2, @c3, @c4].each { |c| assert c['_id'] }
+      assert_equal [:before_save, :before_create, :after_create, :after_save], @c1.log
+      assert_equal [:before_save, :before_update, :after_update, :after_save], @c2.log
+      assert_equal [:before_save, :before_update, :after_update, :after_save], @c3.log
+      assert_equal [:before_save, :before_create, :after_create, :after_save], @c4.log
+      assert_equal [1,2,3,4], CB.all.collect { |c| c['val'] }.sort
+    end
+
+    should "skip callbacks on failed update" do
+      @c3['_rev'] = "0-00000"
+      res = Foo.bulk_save [@c1, @c2, @c3, @c4]
+      assert_equal [true, true, false, true], res.collect { |r| r.has_key?('rev') }
+      assert_equal [:before_save, :before_create, :after_create, :after_save], @c1.log
+      assert_equal [:before_save, :before_update, :after_update, :after_save], @c2.log
+      assert_equal [:before_save, :before_update], @c3.log
+      assert_equal [:before_save, :before_create, :after_create, :after_save], @c4.log
+      assert_match /conflict/i, res[2]['error']
+      assert_equal "d", res[3]['id']
+    end
+
+    should "catch exceptions in callbacks" do
+      @c1['val'] = 91
+      @c2['val'] = 92
+      @c3['val'] = 93
+      @c4['val'] = 94
+      def @c1.before_save
+        raise "err1"
+      end
+      def @c2.before_update
+        raise "err2"
+      end
+      def @c3.after_update
+        raise "err3"
+      end
+      def @c4.after_save
+        raise "err4"
+      end
+      res = Foo.bulk_save [@c1, @c2, @c3, @c4]
+      assert_equal [], @c1.log
+      assert_equal [:before_save], @c2.log
+      assert_equal [:before_save, :before_update], @c3.log
+      assert_equal [:before_save, :before_create, :after_create], @c4.log
+      assert_equal ["err1","err2","err3","err4"], res.collect {|r| r['reason']}
+      res.each { |r| assert_equal "RuntimeError", r['error'] }
+
+      # Only c3 and c4 saved successfully. c2 was already on disk but
+      # not updated.
+      assert_equal [2,93,94], CB.all.collect { |c| c['val'] }.sort
     end
   end
   
