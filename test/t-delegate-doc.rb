@@ -10,6 +10,7 @@ class TestDelegateDoc < Test::Unit::TestCase
 
     should "delegate to hash" do
       assert @d.respond_to?(:has_key?)
+      assert @d.respond_to?(:has_key?,true)   # include private methods
       assert @d.doc.empty?
     end
   end

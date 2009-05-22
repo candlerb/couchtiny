@@ -21,8 +21,8 @@ module CouchTiny
     end
 
     alias :orig_respond_to? :respond_to?
-    def respond_to?(m)
-      orig_respond_to?(m) || @doc.respond_to?(m)
+    def respond_to?(*m)
+      orig_respond_to?(*m) || @doc.respond_to?(*m)
     end
 
     def [](k)
