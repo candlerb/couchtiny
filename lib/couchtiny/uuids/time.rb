@@ -9,6 +9,19 @@ module CouchTiny::UUIDS
   # This implementation uses the top 48 bits for the time in milliseconds
   # after 1 Jan 1970, 16 bits for the PID, and the bottom 64 bits for a
   # pseudo-random ID. This ID will increment if you use the 'bulk' API
+  #
+  # Usage examples:
+  #
+  #   require 'couchtiny'
+  #   require 'couchtiny/uuids/time'
+  #   CouchTiny::Server.options[:uuid_generator] = CouchTiny::UUIDS::Time.new
+  #
+  #   class CouchTiny::Document
+  #     def created_time
+  #       Time.at(id[0,12].to_i(16) / 1000.0) rescue nil
+  #     end
+  #   end
+
   class Time
     # Return one uuid
     def call
