@@ -1,6 +1,7 @@
-module CouchTiny
-  # Object which keeps track of uuids for allocation
-  class UUIDS
+module CouchTiny end
+module CouchTiny::UUIDS
+  # Allocate uuids from the server, keeping a local pool for efficiency
+  class Server
     def initialize(server, batch_size)
       @path = "/_uuids?count=#{batch_size}"
       @http = server.http

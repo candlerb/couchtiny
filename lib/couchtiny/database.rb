@@ -93,7 +93,8 @@ module CouchTiny
     end
     
     # Perform a bulk save of an array of docs. Returns the result structure
-    # but does *not* update the _id or _rev attributes of each doc
+    # but does *not* update the _id or _rev attributes of each doc.
+    # It currently does not preallocate _ids for new records.
     def _bulk_docs(docs, opt={})
       path = "#{@path}/_bulk_docs"
       body = {'docs' => docs}
@@ -103,7 +104,7 @@ module CouchTiny
       @http.post(paramify_path(path, opt), body)
     end
 
-    # Performs a bulk save of an array of docs, and updates the _rev of
+    # Performs a bulk save of an array of docs, and updates the _id and _rev of
     # each one. (We assume that _bulk_docs returns its result array in the
     # same order as the request). You still need to check the response
     # to look for failures.

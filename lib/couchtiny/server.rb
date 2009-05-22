@@ -42,8 +42,8 @@ class Server
       })
     )
     @uuid_generator = opt[:uuid_generator] || (
-      require 'couchtiny/uuids'
-      UUIDS.new(self, opt[:uuid_batch_size] || 100)
+      require 'couchtiny/uuids/server'
+      UUIDS::Server.new(self, opt[:uuid_batch_size] || 100)
     )
   end
   
