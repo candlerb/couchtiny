@@ -94,7 +94,7 @@ module CouchTiny
     
     # Perform a bulk save of an array of docs. Returns the result structure
     # but does *not* update the _id or _rev attributes of each doc.
-    # It currently does not preallocate _ids for new records.
+    # The CouchDB server allocates random ids for new records.
     def _bulk_docs(docs, opt={})
       path = "#{@path}/_bulk_docs"
       body = {'docs' => docs}
@@ -104,20 +104,23 @@ module CouchTiny
       @http.post(paramify_path(path, opt), body)
     end
 
-    # Performs a bulk save of an array of docs, and updates the _id and _rev of
-    # each one. (We assume that _bulk_docs returns its result array in the
-    # same order as the request). You still need to check the response
-    # to look for failures.
+    # Performs a bulk save of an array of docs, first allocating _ids for
+    # new records using the UUID generator object, and afterwards updating
+    # the _rev of each one successfully saved. You stil need to check the
+    # response to look for failures.
     def bulk_docs(docs, opt={})
+      bulk_gen = nil
+      docs.each do |doc|
+        next if doc['_id']
+        bulk_gen ||= @server.uuid_generator.bulk
+        doc['_id'] = bulk_gen.call
+      end
       result = _bulk_docs(docs, opt)
       if result.is_a?(Array)
         result.each_with_index do |res,i|
-          doc = docs[i]
-          id = res['id']
           rev = res['rev']
           next unless rev   # e.g. rejected due to conflict
-          doc['_id'] ||= id
-          doc['_rev'] = rev
+          docs[i]['_rev'] = rev
         end
       end
       result

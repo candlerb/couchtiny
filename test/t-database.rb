@@ -3,6 +3,15 @@ require 'couchtiny'
 require 'couchtiny/parser/jsobject'
 
 class TestServer < Test::Unit::TestCase
+  class MockBulkGen
+    def initialize(arr)
+      @arr = arr
+    end
+    def bulk
+      lambda { @arr.shift }
+    end
+  end
+
   should "create from server and name" do
     server = CouchTiny::Server.new :url=>"http://192.0.2.1"
     database = CouchTiny::Database.new server, "foo"
@@ -174,6 +183,19 @@ class TestServer < Test::Unit::TestCase
       d1 = {'foo'=>111, '_id'=>'test1'}
       res = @database.bulk_docs [d1]
       assert_equal 'conflict', res[0]['error']
+    end
+    
+    should "bulk_docs with custom UUID generator" do
+      @server.uuid_generator = MockBulkGen.new(["aaa","bbb"])
+      d1 = {'foo'=>111}
+      d2 = {'bar'=>222}
+      res = @database.bulk_docs [d1, d2]
+      assert_equal "aaa", d1['_id']
+      assert_equal "bbb", d2['_id']
+
+      assert_equal 2, @database.info['doc_count']
+      assert_equal 111, @database.get('aaa')['foo']
+      assert_equal 222, @database.get('bbb')['bar']
     end
 
     should "_bulk_docs without updating _id or _rev" do
