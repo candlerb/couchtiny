@@ -253,9 +253,9 @@ class TestServer < Test::Unit::TestCase
       d1 = {"foo"=>123}
       d2 = {"bar"=>456}
       d3 = {"baz"=>789}
-      # Don't use bulk_docs, or else db doesn't shrink on compaction!
-      [d1,d2,d3].each { |doc| @database.put doc }
-      @database.bulk_docs [d1,d2,d3]
+      20.times {
+        @database.bulk_docs [d1,d2,d3]
+      }
       size1 = @database.info['disk_size']
       @database.delete(d2)
       @database.compact!
