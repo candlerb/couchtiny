@@ -21,9 +21,6 @@ module CouchTiny
     def initialize(h = {}, database = self.class.database)
       super(h)
       @database = database
-      if t = self.class.type_name
-        doc[self.class.type_attr] = t
-      end
       yield self if block_given?
       after_initialize
     end
@@ -62,6 +59,7 @@ module CouchTiny
       new = new_record?
       before_save
       new ? before_create : before_update
+      doc[self.class.type_attr] ||= self.class.type_name if self.class.type_name
       result = database.put(doc)['ok']
       new ? after_create : after_update
       after_save

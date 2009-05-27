@@ -60,15 +60,6 @@ class TestDocument < Test::Unit::TestCase
       assert @f.new_record?
     end
 
-    should "set type" do
-      assert !@d.has_key?('type')
-      assert_equal "Foo", @f['type']
-      assert_equal "Foo", @g['type']
-      assert_equal "Bar", @b['type']
-      assert_equal "Zog", @z['type']
-      assert_equal "Unattached", @u['type']
-    end
-
     should "set database" do
       assert_nil @d.database
       assert_equal Foo.database, @f.database
@@ -87,6 +78,15 @@ class TestDocument < Test::Unit::TestCase
         assert Foo.database.put(@z)['ok']
         @u.database = Foo.database
         assert_equal true, @u.save!
+      end
+
+      should "set type" do
+        assert !@d.has_key?('type')
+        assert_equal "Foo", @f['type']
+        assert_equal "Foo", @g['type']
+        assert_equal "Bar", @b['type']
+        assert_equal "Zog", @z['type']
+        assert_equal "Unattached", @u['type']
       end
 
       should "not be new_record" do
@@ -369,6 +369,25 @@ class TestDocument < Test::Unit::TestCase
         # This one is just a plain hash, no database accessor
         assert @z['_id']
         assert @z['_rev']
+      end
+
+      should "set type" do
+        assert !@d.has_key?('type')
+        assert_equal "Foo", @f['type']
+        assert_equal "Foo", @g['type']
+        assert_equal "Bar", @b['type']
+        assert_equal "Zog", @z['type']
+        assert_equal "Unattached", @u['type']
+      end
+
+      should "set finder's default type for non-document objects" do
+        n = {"hello"=>"world"}
+        Foo.bulk_save [n]
+        assert n['_id']
+        assert_equal "Foo", n['type']
+        
+        m = Bar.get n['_id']
+        assert_equal Foo, m.class
       end
 
       should "load respecting type attr" do

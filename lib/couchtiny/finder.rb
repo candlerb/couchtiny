@@ -107,6 +107,8 @@ module CouchTiny
         dbdocs  = []
         dbnew   = []
         dbindex = []
+        type_attr = @klass.type_attr
+        type_name = @klass.type_name
         docs.each_with_index do |doc,i|
           new_record = !doc['_rev']
           begin
@@ -114,6 +116,11 @@ module CouchTiny
               before_save if respond_to?(:before_save, true)
               m = new_record ? :before_create : :before_update
               send(m) if respond_to?(m, true)
+              begin
+                doc[self.class.type_attr] ||= self.class.type_name if self.class.type_name
+              rescue NoMethodError
+                doc[type_attr] ||= type_name if type_name
+              end
             }
           rescue RuntimeError => e
             result[i] = {'error'=>e.class.to_s, 'reason'=>(e.message rescue nil), 'exception'=>e}
