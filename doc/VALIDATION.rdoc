@@ -1,0 +1,103 @@
+= Validation
+
+CouchTiny provides no particular way of doing validations; it is up to
+you to choose how to do this.
+
+== Using Exceptions
+
+One possibility is to put your validations into the before_save hook in your
+model, and to raise an exception there.
+
+This should allow you in future to move your validations down into CouchDB
+itself (using the validate_doc_update function in a design doc)
+
+=== app/models/foo.rb
+
+    class ValidationError < ArgumentError; end
+
+    class Foo < CouchTiny::Document
+      auto_accessor
+      def before_save
+        raise ValidationError, "Missing field: Name must be provided" if name.blank?
+      end
+    end
+
+=== app/controllers/foos_controller.rb
+
+    class FoosController < ApplicationController
+      def index
+        @foos = Foo.all
+      end
+
+      def new
+        @foo = Foo.new
+      end
+      
+      def create
+        with_validation(:new) do
+          @foo = Foo.new(params[:foo])
+          @foo.save!
+          flash[:success] = "Foo created"
+          redirect_to @foo
+        end
+      end
+
+      def show
+        fetch
+      end
+
+      def edit
+        fetch
+      end
+      
+      def update
+        with_validation(:edit) do
+          fetch
+          @foo.update params[:foo]
+          @foo.save!
+          flash[:success] = "Changes saved"
+          redirect_to @foo
+        end
+      end
+
+    private
+      def fetch(id = params[:id])
+        @foo = Foo.get(id)
+        raise "Invalid object" unless @foo.class == Foo
+      end
+    end
+
+=== app/controllers/application_controller.rb
+
+    class ValidationError < ArgumentError; end
+
+    class ApplicationController
+      ...
+    private
+      # On create and update, handle exceptions raised in model and from CouchDB.
+      def with_validation(render_action, conflict_message = nil)
+        yield
+      rescue ValidationError => e
+        flash.now[:error] = e.message
+        render :action=>render_action
+      rescue RestClient::Unauthorized
+        # Exception thrown from validate_doc_update, see
+        # http://wiki.apache.org/couchdb/Security_Features_Overview
+        flash.now[:error] = e.message.gsub(/\A\d{3} /,'')
+        render :action=>render_action
+      rescue RestClient::RequestFailed => e
+        case e.response
+        when Net::HTTPConflict
+          flash.now[:error] = conflict_message || "Changes not saved due to concurrent updates, please try again"
+        else
+          flash.now[:error] = "Save failed: #{e.message.inspect}"
+        end
+        render :action=>render_action
+      end
+    end
+
+=== config/routes.rb
+
+    ...
+    map.resources :foos
+    ...

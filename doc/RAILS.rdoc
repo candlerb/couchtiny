@@ -1,0 +1,146 @@
+= Example configuration with RAILS
+
+Here is a suggested way of setting up a Rails app to work with CouchTiny.
+
+== Global configuration
+
+=== config/couchdb.yml
+
+    development: "http://127.0.0.1:5984/myapp-dev"
+    test: "http://127.0.0.1:5984/myapp-test"
+    production: "http://127.0.0.1:5984/myapp-prod"
+
+=== config/initializers/couchdb.rb
+
+    $:.unshift "/path/to/git/couchtiny/lib"
+    require 'couchtiny'
+    require 'couchtiny/document'
+    # Optional configuration: e.g. time-based UUID generation
+    require 'couchtiny/uuids/time'
+    CouchTiny::Server.options[:uuid_generator] = CouchTiny::UUIDS::Time.new
+
+    url = YAML.load(File.read(File.join(RAILS_ROOT,"config","couchdb.yml")))[RAILS_ENV]
+    DB = CouchTiny::Database.url(url)
+
+=== config/environment.rb
+
+If you are only using CouchDB, then you can disable ActiveRecord from being
+loaded entirely.
+
+    ...
+    Rails::Initializer.run do |config|
+      config.frameworks -= [ :active_record ]
+    end
+    ...
+
+=== lib/tasks/couchdb.rake
+
+    namespace :couchdb do
+      desc "Create the database"
+      task :create => :environment do
+        DB.create_database!
+      end
+
+      desc "Update the design doc" 
+      task :migrate => :environment do
+        require 'all_models'
+        CouchTiny::Document.design_doc.update_on(DB)
+      end
+    end
+
+== Application
+
+=== app/models/foo.rb
+
+    class Foo < CouchTiny::Document
+      use_database DB
+      auto_accessor  # optional (scaffolding)
+    end
+
+=== app/models/bar.rb
+
+    class Bar < CouchTiny::Docoument
+      use_database DB
+      auto_accessor  # optional (scaffolding)
+    end
+
+=== app/models/all_models.rb
+
+    # List all models here. This is useful in development mode, where there
+    # is lazy loading of model classes, to force them all to be loaded
+    # before saving the design_doc.
+    [Foo, Bar]
+
+== Console testing
+
+    rake couchdb:create
+    rake couchdb:migrate
+    script/console
+    >> DB.all_docs
+    => {"rows"=>[{"id"=>"_design/cd501b40ea087eb7caaccc9fa866c4dd", "value"=>{"rev"=>"1-4053796607"},
+       "key"=>"_design/cd501b40ea087eb7caaccc9fa866c4dd"}], "offset"=>0, "total_rows"=>1}
+    >> Foo.create!("name"=>"hello")
+    => #<Foo:{"name"=>"hello", "_rev"=>"1-3429085973", "_id"=>"012181aebb132f20f96d2ba9066f3d5eea59", "type"=>"Foo"}
+       on http://127.0.0.1:5984/myapp-dev>
+    >> Foo.all
+    => [#<Foo:{"name"=>"hello", "type"=>"Foo", "_rev"=>"1-3429085973", "_id"=>"012181aebb132f20f96d2ba9066f3d5eea59"}
+       on http://127.0.0.1:5984/myapp-dev>]
+    >> Foo.first.name
+    => "hello"
+    >> Foo.count
+    => 1
+    >> Foo.bulk_destroy(Foo.all)
+    => [{"rev"=>"2-251325620", "id"=>"012181aebb132f20f96d2ba9066f3d5eea59"}]
+    >> 
+
+== Separate databases per user
+
+All the Finder methods can be attached to a specific database at runtime
+using the 'on' method.
+
+    db = CouchTiny::Database.new(...)
+    f = Foo.on(db).new(...)
+    f.save!
+    Foo.on(db).create!(...)
+    Foo.on(db).all
+    g = Foo.on(db).get(f.id)
+
+So if you put the database name into the session at login time, you can then
+forward all subsequent requests to the correct private database. You
+probably still want a single, global authentication database to map
+username/password to database name.
+
+=== config/initializers/couchdb.rb
+
+    ...
+    Server = CouchTiny::Server.new
+
+=== app/controllers/application_controller.rb
+
+    class ApplicationController
+      rescue_responses['RestClient::ResourceNotFound'] = :not_found
+      ...
+    private
+      def db
+        @db ||= CouchTiny::Database.new(Server, session[:db] || (raise "Not Logged In"))
+      end
+
+      def foos
+        Foo.on(db)
+      end
+
+      def bars
+        Bar.on(db)
+      end
+    end
+
+=== app/controllers/foos_controller.rb
+
+    class FoosController < ApplicationController
+      ...
+    private
+      def fetch(id = params[:id])
+        @foo = foos.get(id)
+        raise "Invalid object" unless @foo.class == Foo
+      end
+    end

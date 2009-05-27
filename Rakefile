@@ -18,6 +18,7 @@ Rake::RDocTask.new { |rdoc|
   rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.options << '--charset' << 'utf-8'
   rdoc.rdoc_files.include('*.rdoc')
+  rdoc.rdoc_files.include('doc/**/*.rdoc')
   rdoc.rdoc_files.include('lib/**/*.rb')
   rdoc.main = "README.rdoc"
 }

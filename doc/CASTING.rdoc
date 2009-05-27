@@ -1,0 +1,148 @@
+= Casting
+
+CouchTiny doesn't have any built-in facilities for 'casting'. You can plug
+in whatever best suits you.
+
+'Casting' can mean different things to different people:
+
+* When reading a document from the database, converting JSON values to
+  native Ruby objects
+* When saving a document to the database, converting native Ruby objects
+  to JSON values
+* Converting string values (e.g. from FORM INPUT fields) into native
+  Ruby objects and/or appropriate JSON values, such as Numbers or Booleans.
+
+== Casting at load and save
+
+For traditional casting of objects, you can use the after_initialize,
+after_find and before_save hooks.
+
+The downsides of this approach are that all the fields of the document will
+be casted to Ruby objects (whether or not they will be used), and care may
+be needed to ensure that the JSON->Ruby->JSON transformation leaves
+unchanged fields the same when saving back to the database.
+
+== Facade objects (lazy casting)
+
+Since CouchTiny::Document works by delegating to an underlying hash, you can
+use it to wrap parts of a JSON object without copying. For example, consider
+this JSON document:
+
+    {
+      'type' => 'Course',
+      'name' => 'CouchTiny 101',
+      'professor' => {
+         'first_name' => 'Brian',
+         'last_name' => 'Candler',
+         'telephone' => '01818118181',
+      },
+    }
+
+The encapsulated 'professor' entry can be wrapped dynamically in a Person
+class like this:
+
+    class Person < CouchTiny::Document
+      def first_name;     self['first_name']; end
+      def first_name=(x); self['first_name']=x; end
+      def last_name;      self['last_name']; end
+      def last_name=(x);  self['last_name']=x; end
+      def telephone;      self['telephone']; end
+      def telephone=(x);  self['telephone']=x; end
+    end
+
+    class Course < CouchTiny::Document
+      def professor
+        Person.new(self['professor'] ||= {})
+      end
+
+      def professor=(x)
+        self['professor'] = x.to_hash
+      end
+    end
+
+    c = Course.first
+    puts c.professor.last_name
+    c.professor.telephone = '1234567890'
+    c.save!
+
+Note that any changes made via the 'professor' object are reflected directly
+in the underlying Course hash, so will be saved when the course is saved.
+The Person object is just acting as a proxy.
+
+This idea can be extended to collections in JSON arrays, for example:
+
+    class Course
+      def students
+        CollectionProxy.new(Person, self['students'] ||= [])
+      end
+    end
+
+    class CollectionProxy
+      def initialize(klass, arr)
+        @klass = klass
+        @arr = arr
+      end
+      def [](n)
+        @klass.new(@arr[n])
+      end
+      def []=(n,obj)
+        @arr[n] = obj.to_hash
+      end
+      def each
+        @arr.each { |obj| yield @klass.new(obj) }
+      end
+    end
+
+    c = Course.first
+    c.students[0] = Person.new("first_name"=>"Fred","last_name"=>"Bloggs")
+    c.students[1] = Person.new("first_name"=>"Joe","last_name"=>"Smith")
+    c.save!
+
+I may add native support for this pattern in future.
+
+== Value casting
+
+In many cases, the type in the database may not match the corresponding Ruby
+type, which in turn may not match the string representation assigned from a
+FORM INPUT field.
+
+For example, there are several different ways a time can be represented in a
+JSON document. Here I choose to represent a time in JSON as milliseconds
+since 1 Jan 1970 (which is supported natively in Javascript via Date.new). A
+facade interface can be used to perform the casting on demand:
+
+    require 'time'
+
+    class Course
+      def start_time
+        self['start_time'] && Time.at(self['start_time'] / 1000.0)
+      end
+
+      def start_time=(x)
+        self['start_time'] = case x
+        when Time
+          (x.to_f * 1000.0).to_i
+        when String
+          (Time.parse(x).to_f * 1000.0).to_i
+        when nil
+          nil
+        else
+          raise "Bad value for time: #{x.inspect}"
+        end
+      end
+    end
+
+Note that the underlying document's time field is only updated when you
+assign a new time, so it doesn't matter if the conversion to/from Ruby Time
+is not entirely lossless.
+
+Value casting is also useful for reformatting 'hidden' information, such as
+the creation time when using CouchTiny::UUIDS::Time
+
+    class Course
+      def created_at
+        id && Time.at(id[0,12].to_i(16) / 1000.0)
+      end
+    end
+
+Patterns like this probably belong in a library.

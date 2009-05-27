@@ -2,7 +2,8 @@
 
 This library is a tiny CouchDB API inspired by CouchRest, aiming to be lean,
 simple to understand, and closely aligned to CouchDB's own API. It also
-provides pluggable interfaces for JSON parsing and HTTP client.
+provides pluggable interfaces for JSON parsing, UUID generation and HTTP
+client.
 
 == Dependencies
 
@@ -62,6 +63,11 @@ Such options can be set globally:
 
   CouchTiny::Server.options[:parser] = CouchTiny::Parser::JSObject
 
+=== UUID plugin example
+
+See CouchTiny::UUIDS::Time for a time-based UUID generator, which has the
+benefit that document IDs are allocated in increasing order.
+
 == High-level (document-centric) API
 
 This adds a little object sugar to CouchDB. This is an independent layer, in
@@ -71,7 +77,7 @@ API.
 === CouchTiny::Document
 
   class Foo < CouchTiny::Document
-    use_database "http://127.0.0.1:5984/foo"
+    use_database CouchTiny::Database.url("http://127.0.0.1:5984/foo")
 
     define_view "Foo_by_bar", <<-MAP, :include_docs=>true
       function(doc) {
