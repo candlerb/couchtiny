@@ -122,7 +122,7 @@ module CouchTiny
                 doc[type_attr] ||= type_name if type_name
               end
             }
-          rescue RuntimeError => e
+          rescue RuntimeError, ArgumentError => e
             result[i] = {'error'=>e.class.to_s, 'reason'=>(e.message rescue nil), 'exception'=>e}
           else
             dbdocs  << doc
@@ -144,7 +144,7 @@ module CouchTiny
                 send(m) if respond_to?(m, true)
                 after_save if respond_to?(:after_save, true)
               }
-            rescue RuntimeError => e
+            rescue RuntimeError, ArgumentError => e
               stat.replace('error'=>e.class.to_s, 'reason'=>(e.message rescue nil), 'exception'=>e)
             end
           end
