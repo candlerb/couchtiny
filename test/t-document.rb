@@ -45,6 +45,10 @@ class Unattached < CouchTiny::Document
 end
 
 class TestDocument < Test::Unit::TestCase
+  should "have name method in Finder" do
+    assert_equal "Unattached", Unattached.on(:dummy).name
+  end
+
   context "save and load" do
     setup do
       Foo.database.recreate_database!
