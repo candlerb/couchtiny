@@ -36,7 +36,7 @@ module CouchTiny::UUIDS
     end
 
     class Seq #:nodoc:
-      RAND_SIZE = (1<<80) - (1<<32)  #:nodoc:
+      RAND_SIZE = (1<<64) - (1<<32)  #:nodoc:
 
       def initialize
         @ms = (::Time.now.to_f * 1000.0).to_i   # compatible with Javascript Date

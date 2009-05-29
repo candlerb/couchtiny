@@ -7,14 +7,20 @@ class TestUUIDSTime < Test::Unit::TestCase
     setup do
       @uuids = CouchTiny::UUIDS::Time.new
     end
-    
+
+    should "allocate 32-character uuids" do
+      u = @uuids.call
+      assert_equal String, u.class
+      assert_equal 32, u.size       
+    end
+
     should "allocate unique uuids" do
       u1 = @uuids.call
       u2 = @uuids.call
       u3 = @uuids.call
       assert_equal 3, [u1,u2,u3].uniq.size
     end
-    
+
     should "have time in top 48 bits" do
       u = @uuids.call
       t1 = Time.now.to_f * 1000.0
