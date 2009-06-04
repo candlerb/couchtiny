@@ -1,5 +1,26 @@
+Things likely to change
+-----------------------
+
+* Proper exception hierarchy for each of the CouchDB error types.
+  - validation: would like to be able to throw/catch errors for multiple
+    fields at once (esp if validate_doc_update can do this), tagged
+    by field, so UI can show errors better
+
+* Undecided: I might switch to separate 'all' views per model like CouchRest,
+  instead of one global 'all' view
+
+* Undecided: Foo.get(id) where doc has a type other than 'Foo' currently
+  returns the class defined by the type (or CouchTiny::Document if none).
+  Should it raise an exception instead? What about Foo.view ... ?
+
+Other ideas
+-----------
+
 * New HTTP backend
   - HTTP/1.1 persistent connections
-  - separate out 409, 412 exceptions?
-* show and list
+* bulk_destroy callbacks
+* show and list?
   - http://wiki.apache.org/couchdb/Formatting_with_Show_and_List
+* document reload?
+* chainable before and after hooks
+* properties and casting - probably as a separate library to allow choice
