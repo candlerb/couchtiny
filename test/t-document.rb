@@ -155,6 +155,14 @@ class TestDocument < Test::Unit::TestCase
           assert_equal "foobar", @f.get_attachment("wibble")
         end
         
+        should "retrieve attachment info" do
+          @f.put_attachment "wibble", "abc"
+          f = Foo.get @f.id
+          assert f.has_attachment?("wibble")
+          assert !f.has_attachment?("bibble")
+          assert_equal 3, f.attachment_info("wibble")["length"]
+        end
+        
         should "save content type" do
           @f.put_attachment "wibble", "foobar", "application/x-foo"
           f = Foo.get @f.id

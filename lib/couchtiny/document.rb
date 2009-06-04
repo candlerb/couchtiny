@@ -72,8 +72,18 @@ module CouchTiny
       after_destroy
     end
 
+    def attachment_info(attach_name)
+      doc['_attachments'] && doc['_attachments'][attach_name]
+    end
+    alias :has_attachment? :attachment_info
+    
     def get_attachment(attach_name, opt={})
-      database.get_attachment(doc, attach_name, opt)
+      info = attachment_info(attach_name)
+      if info && info['data']
+        info['data'].unpack("m").first
+      else
+        database.get_attachment(doc, attach_name, opt)
+      end
     end
 
     def put_attachment(attach_name, data, content_type=nil)
