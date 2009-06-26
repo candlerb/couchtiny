@@ -138,9 +138,14 @@ username/password to database name.
 
     class FoosController < ApplicationController
       ...
+      def new
+        @foo = foos.new
+      end
+      ...
     private
       def fetch(id = params[:id])
         @foo = foos.get(id)
-        raise "Invalid object" unless @foo.class == Foo
+        raise "Invalid object" unless Foo == @foo.class
+        return @foo
       end
     end

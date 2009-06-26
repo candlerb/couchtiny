@@ -11,14 +11,19 @@ model, and to raise an exception there.
 This should allow you in future to move your validations down into CouchDB
 itself (using the validate_doc_update function in a design doc)
 
-=== app/models/foo.rb
+=== lib/validation.rb
 
     class ValidationError < ArgumentError; end
 
+=== app/models/foo.rb
+
+    require 'validation'
     class Foo < CouchTiny::Document
       auto_accessor
+    
       def before_save
         raise ValidationError, "Missing field: Name must be provided" if name.blank?
+        raise ValidationError, "Invalid data: Name must contain a-z 0-9 and space only" if name !~ /\A[a-z0-9 ]+\z/i
       end
     end
 
@@ -27,6 +32,14 @@ itself (using the validate_doc_update function in a design doc)
     class FoosController < ApplicationController
       def index
         @foos = Foo.all
+      end
+
+      def show
+        fetch || return
+        respond_to do |format|
+          format.html
+          format.json { render :text => JSON::pretty_generate(@foo) }
+        end
       end
 
       def new
@@ -42,36 +55,51 @@ itself (using the validate_doc_update function in a design doc)
         end
       end
 
-      def show
-        fetch
-      end
-
       def edit
-        fetch
+        fetch || return
       end
       
       def update
         with_validation(:edit) do
-          fetch
+          fetch || return
           @foo.update params[:foo]
           @foo.save!
           flash[:success] = "Changes saved"
           redirect_to @foo
         end
       end
+      
+      def destroy
+        with_validation(:show) do
+          fetch || return
+          @foo.destroy
+          flash[:notice] = "Foo destroyed"
+          redirect_to :action=>:index
+        end
+      end
 
     private
       def fetch(id = params[:id])
         @foo = Foo.get(id)
-        raise "Invalid object" unless @foo.class == Foo
+        unless Foo == @foo.class
+          flash[:error] = "Bad object type #{@foo.class}"
+          redirect_to :action=>:index
+          @foo = nil
+          return
+        end
+        return @foo
+      rescue RestClient::ResourceNotFound
+        flash[:error] = "Unknown object"
+        redirect_to :action=>:index
+        @foo = nil
+        return
       end
     end
 
 === app/controllers/application_controller.rb
 
-    class ValidationError < ArgumentError; end
-
-    class ApplicationController
+    require 'validation'
+    class ApplicationController < ActionController::Base
       ...
     private
       # On create and update, handle exceptions raised in model and from CouchDB.

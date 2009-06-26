@@ -55,15 +55,17 @@ you can hook it into the low-level API like this:
 Here, the JSObject parser makes hashes behave like Javascript objects - that
 is, you can access them as doc.foo or doc['foo'] equally.
 
-The HTTP backend is also pluggable. The default one uses RestClient but
-converts exceptions back to the usual Net::HTTP hierarchy and parses the
-JSON error message. This is easily replaced if you want.
-
 Such options can be set globally:
 
   CouchTiny::Server.options[:parser] = CouchTiny::Parser::JSObject
 
-=== UUID plugin example
+=== HTTP plugin
+
+The HTTP backend is also pluggable. The default one uses RestClient but
+patches the error message from the JSON body into the exception message.
+This is easily replaced if you want.
+
+=== UUID plugin
 
 See CouchTiny::UUIDS::Time for a time-based UUID generator, which has the
 benefit that document IDs are allocated in increasing order.
