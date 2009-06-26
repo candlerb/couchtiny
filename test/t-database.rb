@@ -278,9 +278,9 @@ class TestServer < Test::Unit::TestCase
 
     should "show 400 exception" do
       e = assert_raises(RestClient::RequestFailed) {
-        @database.all_docs(:z=>"z")
+        @database.all_docs(:reduce=>"flurble")
       }
-      assert_equal '400 query_parse_error (Invalid URL parameter: "z")', e.message
+      assert_equal '400 query_parse_error (Invalid value for boolean paramter: "flurble")', e.message
     end
 
     # 401: RestClient::Unauthorized
