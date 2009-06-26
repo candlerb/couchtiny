@@ -157,6 +157,13 @@ script/console:
 
   >> JSON.pretty_generate({"foo"=>"bar"})
 
+== Licence
+
+This software is released under the same terms as Ruby. See the files
+COPYING and GPL.
+
 == Author
 
 Brian Candler (B dot Candler at pobox.com dot com)
+
+Copyright (C) 2009
