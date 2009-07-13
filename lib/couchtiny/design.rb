@@ -12,9 +12,10 @@ module CouchTiny
   class Design < DelegateDoc
     attr_accessor :default_view_opts, :name_prefix, :with_slug
     include CouchTiny::Utils
+    DEFAULT_LANGUAGE = 'javascript'
 
     def self.default_doc
-      {'language'=>'javascript'}
+      {'language'=>DEFAULT_LANGUAGE}
     end
     
     def initialize(name = "", with_slug = name.empty?, doc = self.class.default_doc)
@@ -23,6 +24,14 @@ module CouchTiny
       @with_slug = with_slug
       @default_view_opts = {}
       changed
+    end
+
+    def language
+      self['language'] || DEFAULT_LANGUAGE
+    end
+
+    def language=(x)
+      self['language'] = x
     end
 
     # Force recalculation of the slug
@@ -97,15 +106,17 @@ module CouchTiny
         db._put(id, doc)
       end
     end
+
+    # A bunch of useful reduce functions
+    REDUCE = {}
     
-    # A null reduce function allows you to perform grouped queries
-    REDUCE_NULL = <<REDUCE.freeze
+    REDUCE["javascript"] = {
+      "null" => <<REDUCE.freeze,
 function(ks, vs, co) {
   return null;
 }
 REDUCE
-    # A useful generic reduce function for counting objects. Returns a Number.
-    REDUCE_COUNT = <<REDUCE.freeze
+      "count" => <<REDUCE.freeze,
 function(ks, vs, co) {
   if (co) {
     return sum(vs);
@@ -114,10 +125,7 @@ function(ks, vs, co) {
   }
 }
 REDUCE
-
-    # A reduce optimised for low-cardinality string values. Returns an
-    # Object which maps each value to its count.
-    REDUCE_LOW_CARDINALITY = <<REDUCE.freeze
+      "low_cardinality" => <<REDUCE.freeze,
 function(ks, vs, co) {
   if (co) {
     var result = vs.shift();
@@ -137,5 +145,44 @@ function(ks, vs, co) {
   }
 }
 REDUCE
+    }
+
+    REDUCE["ruby"] = {
+      "null" => <<REDUCE.freeze,
+proc { |ks, vs, co| nil }
+REDUCE
+      "count" => <<REDUCE.freeze,
+proc { |ks, vs, co|
+  if co
+    vs.inject(0) { |acc,v| acc+v }
+  else
+    vs.length
+  end
+}
+REDUCE
+      "low_cardinality" => <<REDUCE.freeze,
+proc { |ks, vs, co|
+  if co
+    result = Hash.new(0)
+    vs.each { |v|
+      v.each { |j,k|
+        result[j] += k
+      }
+    }
+  else
+    result = Hash.new(0)
+    ks.each { |k,id|
+      result[k] += 1
+    }
+  end
+  result
+}
+REDUCE
+    }    
+    
+    # Backwards-compat
+    REDUCE_NULL = REDUCE['javascript']['null']
+    REDUCE_COUNT = REDUCE['javascript']['count']
+    REDUCE_LOW_CARDINALITY = REDUCE['javascript']['low_cardinality']
   end
 end

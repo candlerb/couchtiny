@@ -189,15 +189,24 @@ module CouchTiny
       end
 
       def define_view_all(map = nil, reduce = nil, opt = {:reduce=>false})
+        reducers = Design::REDUCE[design_doc.language] || (raise "Unknown language #{l}")
         if map.nil?
-          map = <<-MAP
-          function(doc) {
-            emit(doc['#{type_attr}'] || null, null);
+          mappers = {
+            'javascript' => <<-MAP,
+function(doc) {
+  emit(doc['#{type_attr}'] || null, null);
+}
+MAP
+            'ruby' => <<-MAP,
+proc { |doc|
+  emit(doc['#{type_attr}'], nil)
+}
+MAP
           }
-          MAP
-          reduce = Design::REDUCE_LOW_CARDINALITY if reduce.nil?
+          map = mappers[design_doc.language]
+          reduce = reducers['low_cardinality'] if reduce.nil?
         else
-          reduce = Design::REDUCE_COUNT if reduce.nil?
+          reduce = reducers['count'] if reduce.nil?
         end
         design_doc.define_view "all", map, reduce, opt
       end
