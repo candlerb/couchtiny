@@ -306,7 +306,7 @@ class TestServer < Test::Unit::TestCase
       e = assert_raises(RestClient::RequestFailed) {
         @database.http.put "/#{DATABASE_NAME}/_bulk_docs", "[]", :content_type=>"application/octet-stream"
       }
-      assert_equal '405 Method Not Allowed', e.message
+      assert_match /^405/, e.message
     end
 
     context "all_or_nothing and conflicting revs" do
@@ -453,6 +453,17 @@ class TestServer < Test::Unit::TestCase
     end
     
     should "generate temporary view" do
+      res = @database.temp_view(<<MAP)
+function(doc) {
+  if (doc.friend) {
+    emit(doc.friend, null);
+  }
+}
+MAP
+      assert_equal ["bluebottle","eccles","moriarty"], res['rows'].collect { |r| r['key'] }
+    end
+
+    should "generate temporary view with options" do
       res = @database.temp_view(<<MAP, :descending=>true)
 function(doc) {
   if (doc.friend) {

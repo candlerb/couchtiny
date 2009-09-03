@@ -207,7 +207,7 @@ module CouchTiny
     #   db.temp_view("..map..", "..reduce..", :startkey=>x, :endkey=>y)
     # Use :language=>"..." for non-Javascript views
     def temp_view(map, *args, &blk) #:yields: row
-      opt = args.pop if args.last.instance_of?(Hash)
+      opt = args.last.instance_of?(Hash) ? args.pop : {}
       body = {'map' => map}
       body['reduce'] = args.shift unless args.empty?
       body['language'] = opt.delete(:language) if opt.has_key?(:language)
