@@ -3,6 +3,9 @@ require 'couchtiny/delegate_doc'
 require 'json'
 
 class TestDelegateDoc < Test::Unit::TestCase
+  class Foo < CouchTiny::DelegateDoc
+  end
+  
   context "empty doc" do
     setup do
       @d = CouchTiny::DelegateDoc.new
@@ -48,6 +51,20 @@ class TestDelegateDoc < Test::Unit::TestCase
 
     should "delegate to_json" do
       assert_equal '{"foo":"bar"}', @d.to_json
+    end
+  end
+  
+  context "subclass of DelegateDoc" do
+    setup do
+      @foo = Foo.new
+    end
+    
+    should "honour is_a?" do
+      assert @foo.is_a?(Foo)
+    end
+
+    should "honour ===" do
+      assert Foo === @foo
     end
   end
 end
