@@ -647,4 +647,20 @@ class TestDocument < Test::Unit::TestCase
     assert_equal "world", f.hello
     assert_equal "world", f["hello"]
   end
+
+  # Ensure we're working when Rails reloads model classes
+  should "create objects after class has been redefined" do
+    class ::Flurble < CouchTiny::Document; end
+    klass1 = ::Flurble
+    ::Flurble.on(Foo.database).create!('_id' => 'test')
+
+    Object.send(:remove_const, :Flurble)
+    class ::Flurble < CouchTiny::Document; end
+    klass2 = ::Flurble
+    
+    assert klass1 != klass2, "I expect a new Flurble class object"
+    
+    res = CouchTiny::Document.on(Foo.database).get('test')
+    assert ::Flurble === res, "The loaded object should be of the new #{klass2} class (#{klass2.object_id}), but it was #{res.class} (#{res.class.object_id})"
+  end
 end
