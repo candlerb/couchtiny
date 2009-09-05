@@ -107,11 +107,12 @@ module CouchTiny
       def type_to_class; @@type_to_class; end
 
       # Create an object of the class defined in its type attribute.
-      # If no type attribute is present or value unknown, fallback to Document.
-      # (ActiveRecord falls back to the model class, but this probably doesn't
-      # make sense for CouchDB where there is only one 'table')
-      def instantiate(doc = {}, db = database)
-        klass = type_to_class[doc[type_attr]] || Document # ||self? ||raise?
+      # If no type attribute is present or value unknown, use the
+      # default_class instead (which is this document class, if not given).
+      # Passing a wrapper for default_class can make other behaviour such
+      # as raising an exception.
+      def instantiate(doc = {}, db = database, default_class = nil)
+        klass = type_to_class[doc[type_attr]] || default_class || self
         klass.new(doc, db) { |o| o.send(:after_find) }
       end
       

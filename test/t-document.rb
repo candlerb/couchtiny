@@ -98,12 +98,12 @@ class TestDocument < Test::Unit::TestCase
       end
 
       should "set database, id and rev" do
-        assert @d.database.instance_of?(CouchTiny::Database)
+        assert_equal CouchTiny::Database, @d.database.class
         assert @d.id
         assert @d.rev
       end
       
-      should "load respecting type_attr" do
+      should "load respecting type_attr (under Foo)" do
         d = Foo.get @d.id
         f = Foo.get @f.id
         g = Foo.get @g.id
@@ -111,12 +111,12 @@ class TestDocument < Test::Unit::TestCase
         z = Foo.get @z['_id']
         u = Foo.get @u.id
 
-        assert d.instance_of?(CouchTiny::Document)
-        assert f.instance_of?(Foo)
-        assert g.instance_of?(Foo)
-        assert b.instance_of?(Bar)
-        assert z.instance_of?(CouchTiny::Document)
-        assert u.instance_of?(Unattached)
+        assert_equal CouchTiny::Document, d.class
+        assert_equal Foo, f.class
+        assert_equal Foo, g.class
+        assert_equal Bar, b.class
+        assert_equal Foo, z.class
+        assert_equal Unattached, u.class
         
         assert_equal "a", d["tag"]
         assert_equal "b", f["tag"]
@@ -124,6 +124,22 @@ class TestDocument < Test::Unit::TestCase
         assert_equal "c", b["tag"]
         assert_equal "d", z["tag"]
         assert_equal "e", u["tag"]
+      end
+
+      should "load respecting type_attr (under CouchTiny::Document)" do
+        d = CouchTiny::Document.on(Foo.database).get @d.id
+        f = CouchTiny::Document.on(Foo.database).get @f.id
+        g = CouchTiny::Document.on(Foo.database).get @g.id
+        b = CouchTiny::Document.on(Foo.database).get @b.id
+        z = CouchTiny::Document.on(Foo.database).get @z['_id']
+        u = CouchTiny::Document.on(Foo.database).get @u.id
+
+        assert_equal CouchTiny::Document, d.class
+        assert_equal Foo, f.class
+        assert_equal Foo, g.class
+        assert_equal Bar, b.class
+        assert_equal CouchTiny::Document, z.class
+        assert_equal Unattached, u.class
       end
 
       should "load in bulk" do
@@ -187,7 +203,7 @@ class TestDocument < Test::Unit::TestCase
         
         should "load on database" do
           b = Unattached.on(Foo.database).get @u.id
-          assert b.instance_of?(Unattached)
+          assert_equal Unattached, b.class
           assert_equal Foo.database, b.database
         end
       end
@@ -222,7 +238,7 @@ class TestDocument < Test::Unit::TestCase
             Foo,
             Foo,
             Bar,
-            CouchTiny::Document,
+            Foo,
             Unattached,
           ], res.collect {|r| r.class}
         end
@@ -321,7 +337,7 @@ class TestDocument < Test::Unit::TestCase
 
         should "all with options" do
           fs = Foo.all(:startkey=>"e")
-          assert_equal [Foo, Foo, Unattached, CouchTiny::Document], fs.collect { |r| r.class }
+          assert_equal [Foo, Foo, Unattached, Foo], fs.collect { |r| r.class }
 
           res = Foo.all(:keys=>["Foo","Bar"])
           assert_equal [Foo,Foo,Bar], res.collect {|r| r.class}
@@ -410,12 +426,12 @@ class TestDocument < Test::Unit::TestCase
         z = Foo.get @z['_id']
         u = Foo.get @u.id
 
-        assert d.instance_of?(CouchTiny::Document)
-        assert f.instance_of?(Foo)
-        assert g.instance_of?(Foo)
-        assert b.instance_of?(Bar)
-        assert z.instance_of?(CouchTiny::Document)
-        assert u.instance_of?(Unattached)
+        assert_equal CouchTiny::Document, d.class
+        assert_equal Foo, f.class
+        assert_equal Foo, g.class
+        assert_equal Bar, b.class
+        assert_equal Foo, z.class
+        assert_equal Unattached, u.class
         
         assert_equal "a", d["tag"]
         assert_equal "b", f["tag"]
@@ -451,8 +467,8 @@ class TestDocument < Test::Unit::TestCase
 
   context "class accessors" do
     should "have defaults" do
-      assert Foo.database.instance_of?(CouchTiny::Database)
-      assert Foo.design_doc.instance_of?(CouchTiny::Design)
+      assert_equal CouchTiny::Database, Foo.database.class
+      assert_equal CouchTiny::Design, Foo.design_doc.class
       assert_equal '', Foo.design_doc.name_prefix
       assert_equal 'type', Foo.type_attr
       assert_equal 'Foo', Foo.type_name
@@ -492,7 +508,7 @@ class TestDocument < Test::Unit::TestCase
         Bar.use_design_doc CouchTiny::Design.new('Bar')
         Bar.use_type_attr 'my-type'
         Bar.use_type_name 'zog'
-        assert Foo.database.instance_of?(CouchTiny::Database)
+        assert_equal CouchTiny::Database, Foo.database.class
         assert_equal :dummy1, Bar.database
         assert_equal '', Foo.design_doc.name_prefix
         assert_equal 'Bar', Bar.design_doc.name_prefix
@@ -662,5 +678,30 @@ class TestDocument < Test::Unit::TestCase
     
     res = CouchTiny::Document.on(Foo.database).get('test')
     assert ::Flurble === res, "The loaded object should be of the new #{klass2} class (#{klass2.object_id}), but it was #{res.class} (#{res.class.object_id})"
+  end
+
+  context "instantiate" do
+    should "create instance of model class" do
+      res = Foo.instantiate({"type"=>"Bar", "abc"=>"def"})
+      assert_equal Bar, res.class
+      assert_equal "def", res["abc"]
+    end
+    
+    should "default to model class" do
+      res = Foo.instantiate({"type"=>"junk", "abc"=>"def"})
+      assert_equal Foo, res.class
+      assert_equal "def", res["abc"]
+    end
+
+    should "default to specified class" do
+      res = Foo.instantiate({"type"=>"junk", "abc"=>"def"}, nil, Bar)
+      assert_equal Bar, res.class
+      assert_equal "def", res["abc"]
+    end
+
+    should "set database" do
+      res = Foo.instantiate({"type"=>"junk", "abc"=>"def"}, :dummy)
+      assert_equal :dummy, res.database
+    end
   end
 end
