@@ -193,8 +193,8 @@ class TestDocument < Test::Unit::TestCase
       end
 
       context "user defined view" do
-        should "have class in actual view name" do
-          res = Foo.view "Foo_test_by_tag"
+        should "not have class in actual view name" do
+          res = Foo.view "test_by_tag"
           assert_equal 6, res.size
         end
 
@@ -249,14 +249,14 @@ class TestDocument < Test::Unit::TestCase
         end
 
         should "set database on returned docs" do
-          res = Unattached.on(Foo.database).view "Foo_test_by_tag", :include_docs=>true, :key=>"a"
+          res = Unattached.on(Foo.database).view "test_by_tag", :include_docs=>true, :key=>"a"
           assert_equal 1, res.size
           assert_equal Foo.database, res.first.database
         end
 
         should "set database on yielded docs" do
           res = []
-          Unattached.on(Foo.database).view("Foo_test_by_tag", :include_docs=>true, :key=>"a") { |r| res << r }
+          Unattached.on(Foo.database).view("test_by_tag", :include_docs=>true, :key=>"a") { |r| res << r }
           assert_equal 1, res.size
           assert_equal Foo.database, res.first.database
         end

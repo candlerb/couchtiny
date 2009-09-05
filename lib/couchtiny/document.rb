@@ -182,10 +182,10 @@ module CouchTiny
       #
       #   Foo.view_by_bar :key=>123
       #
-      # The view is called "Foo_by_bar"
+      # The view is called "by_bar"
       def define_view(vname, map, *args)
-        design_doc.define_view("#{name}_#{vname}", map, *args)
-        self::Finder.class_eval "def view_#{vname}(opt={},&blk) view('#{name}_#{vname}',opt,&blk); end"
+        design_doc.define_view(vname, map, *args)
+        self::Finder.class_eval "def view_#{vname}(opt={},&blk) view('#{vname}',opt,&blk); end"
       end
 
       def define_view_all(map = nil, reduce = nil, opt = {:reduce=>false})
