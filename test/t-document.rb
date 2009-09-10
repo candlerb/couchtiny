@@ -643,13 +643,15 @@ class TestDocument < Test::Unit::TestCase
       def @c4.after_save
         raise "err4"
       end
-      res = Foo.bulk_save [@c1, @c2, @c3, @c4]
+      docs = [@c1, @c2, @c3, @c4]
+      res = Foo.bulk_save docs
       assert_equal [], @c1.log
       assert_equal [:before_save], @c2.log
       assert_equal [:before_save, :before_update], @c3.log
       assert_equal [:before_save, :before_create, :after_create], @c4.log
       assert_equal ["err1","err2","err3","err4"], res.collect {|r| r['reason']}
       res.each { |r| assert_equal "RuntimeError", r['error'] }
+      res.each_with_index { |r,i| assert_equal docs[i]['_id'], r['id'] }
 
       # Only c3 and c4 saved successfully. c2 was already on disk but
       # not updated.

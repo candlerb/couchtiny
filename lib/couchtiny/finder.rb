@@ -127,7 +127,7 @@ module CouchTiny
               end
             }
           rescue RuntimeError, ArgumentError => e
-            result[i] = {'error'=>e.class.to_s, 'reason'=>(e.message rescue nil), 'exception'=>e}
+            result[i] = {'id'=>doc['_id'], 'error'=>e.class.to_s, 'reason'=>(e.message rescue nil), 'exception'=>e}
           else
             dbdocs  << doc
             dbnew   << new_record
@@ -149,7 +149,7 @@ module CouchTiny
                 after_save if respond_to?(:after_save, true)
               }
             rescue RuntimeError, ArgumentError => e
-              stat.replace('error'=>e.class.to_s, 'reason'=>(e.message rescue nil), 'exception'=>e)
+              stat.replace('id'=>doc['_id'], 'error'=>e.class.to_s, 'reason'=>(e.message rescue nil), 'exception'=>e)
             end
           end
         end
