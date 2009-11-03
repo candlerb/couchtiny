@@ -11,8 +11,15 @@ module CouchTiny
         @klass = klass
       end
 
+      # Retrieve a document by id. If the :open_revs option is supplied
+      # then you will get an array of documents instead.
       def get(id, opt={})
-        @klass.instantiate(@database.get(id, opt), @database)
+        res = @database.get(id, opt)
+        if opt[:open_revs]
+          res.select { |r| r['ok'] && !r['ok']['_deleted'] }.map { |r| @klass.instantiate(r['ok'], @database) }
+        else
+          @klass.instantiate(res, @database)
+        end
       end
 
       # Return a view. Note that this dereferences the ['rows'] for you,

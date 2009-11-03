@@ -706,4 +706,29 @@ class TestDocument < Test::Unit::TestCase
       assert_equal :dummy, res.database
     end
   end
+
+  context "conflicting documents" do
+    setup do
+      Foo.database.recreate_database!
+      @doc = Foo.create!("_id"=>"fred", "friend"=>"jim")
+      rev = @doc["_rev"]
+      @doc["friend"] = "eccles"
+      Foo.bulk_save [@doc], :all_or_nothing => true
+      @doc["friend"] = "moriarty"
+      @doc["_rev"] = rev
+      Foo.bulk_save [@doc], :all_or_nothing => true
+    end
+
+    should "pick one version" do
+      res = Foo.get "fred"
+      assert res.is_a?(Foo)
+      assert_equal "fred", res.id
+    end
+
+    should "get all conflicting revs" do
+      res = Foo.get "fred", :open_revs=>:all
+      assert res.is_a?(Array)
+      assert_equal ["eccles","moriarty"], res.collect { |r| r["friend"] }.sort
+    end
+  end
 end
