@@ -79,6 +79,22 @@ class TestDesign < Test::Unit::TestCase
     assert_equal({:key=>"boing"}, des.default_view_opts['testing'])
   end
 
+  should "set view options" do
+    des = CouchTiny::Design.new
+    des.define_view "testing", "func1", false, {:options=>{"collation"=>"raw"}, :key=>"boing"}
+    assert_equal "raw", des['views']['testing']['options']['collation']
+    assert_equal({:key=>"boing"}, des.default_view_opts['testing'])
+  end
+  
+  should "set include view options in slug" do
+    des = CouchTiny::Design.new
+    des.define_view "testing", "func1", false
+    slug1 = des.slug
+    des.define_view "testing", "func1", false, {:options=>{"collation"=>"raw"}}
+    slug2 = des.slug
+    assert_not_equal slug1, slug2
+  end
+  
   context "on database" do
     setup do
       @server = CouchTiny::Server.new :url=>SERVER_URL

@@ -47,6 +47,7 @@ module CouchTiny
       md5 = Digest::MD5.new
       doc['views'].sort.each do |k,v|
         md5 << "#{k}/#{v['map']}#{v['reduce']}"
+        md5 << v['options'].sort.to_s if v['options']
       end if doc['views']
       md5.hexdigest
     end
@@ -61,14 +62,17 @@ module CouchTiny
     end
     
     # Define a view:
-    #   define_view "name", "map fn", [default opts]
-    #   define_view "name", "map fn", "reduce fn", [default opts]
-    # Any default options provided are used when invoking the view.
-    # For example, you can define a reduce function but apply :reduce=>false
+    #   define_view "name", "map fn", [opts]
+    #   define_view "name", "map fn", "reduce fn", [opts]
+    # Example view options:
+    #     :options => { "collation" => "raw" }
+    # Any remaining options provided are used as defaults when invoking the view.
+    # For example, you can define a reduce function but give :reduce=>false
     # as an option, so that the reduce is only invoked when explicitly requested.
     def define_view(vname, map, *args)
       vname = vname.to_s
       opt = args.pop if args.last.instance_of?(Hash)
+      opt && view_options = opt.delete(:options)
       default_view_opts[vname] = opt || {}
       doc['views'] ||= {}
       doc['views'][vname] ||= {}
@@ -78,6 +82,7 @@ module CouchTiny
       else
         doc['views'][vname].delete('reduce')
       end
+      doc['views'][vname]['options'] = view_options if view_options
       changed
     end
     
