@@ -214,6 +214,11 @@ class TestDocument < Test::Unit::TestCase
           assert_equal 6, res.size
         end
 
+        should "allow symbol for view name" do
+          res = Foo.view :test_by_tag
+          assert_equal 6, res.size
+        end
+
         should "return rows" do
           res = Foo.view_test_by_tag
           assert_equal 6, res.size
