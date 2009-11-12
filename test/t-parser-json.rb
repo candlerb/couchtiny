@@ -17,18 +17,13 @@ class TestParserJSON < Test::Unit::TestCase
     end
   end
 
-  context "Parser::JSON with options" do
+  context "Parser::JSON with parse options" do
     setup do
-      @json = CouchTiny::Parser::JSON.new(:pretty_generate, :max_nesting=>2)
+      @json = CouchTiny::Parser::JSON.new(:to_json, :max_nesting=>2)
     end
     
     should "unparse" do
-      assert_equal <<EOS.chomp, @json.unparse("a"=>1, "b"=>2)
-{
-  "a": 1,
-  "b": 2
-}
-EOS
+      assert_equal '{"a":1,"b":2}', @json.unparse("a"=>1, "b"=>2)
     end
     
     should "enforce parsing limits" do
@@ -37,4 +32,16 @@ EOS
       }
     end
   end
+
+if defined? ActiveSupport
+  context "Parser::JSON with generate options" do
+    setup do
+      @json = CouchTiny::Parser::JSON.new(:to_json, {:max_nesting=>2}, {:except=>"a"})
+    end
+    
+    should "unparse" do
+      assert_equal '{"b":2}', @json.unparse("a"=>1, "b"=>2)
+    end
+  end
+end
 end

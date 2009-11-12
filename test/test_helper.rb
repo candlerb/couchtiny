@@ -8,3 +8,10 @@ DATABASE2_NAME = 'couchtiny-test2'
 
 require 'restclient'
 TEST_HTTP_NOT_FOUND = RestClient::ResourceNotFound
+
+# Ugh, active_support 2.3.4 breaks JSON.unparse, load if it's available
+begin
+  require 'active_support'
+rescue LoadError
+  warn "Testing without active_support"
+end

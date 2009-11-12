@@ -35,7 +35,7 @@ class Server
     @http = opt[:http] || (
       require 'couchtiny/http/restclient'
       url = opt[:url] || 'http://127.0.0.1:5984'
-      parser = opt[:parser] || (require 'json'; ::JSON)
+      parser = opt[:parser] || (require 'couchtiny/parser/json'; Parser::JSON.new)
       HTTP::RestClient.new(url, parser, :headers=>{
         :content_type => CONTENT_TYPE,
         :accept => CONTENT_TYPE,

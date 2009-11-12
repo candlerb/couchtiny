@@ -11,7 +11,7 @@ module CouchTiny
       module_function :parse
 
       def unparse(src)
-        ::JSON.unparse(src)
+        src.to_json
       end
       module_function :unparse
     end
