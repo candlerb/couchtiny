@@ -53,6 +53,10 @@ module CouchTiny
       @doc.update(h)
     end
 
+    def dup
+      self.class.new(@doc.dup)
+    end
+    
     #def method_missing(m, *args, &block)
     #  @doc.__send__(m, *args, &block)
     #end

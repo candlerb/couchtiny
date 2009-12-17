@@ -52,6 +52,14 @@ class TestDelegateDoc < Test::Unit::TestCase
     should "delegate to_json" do
       assert_equal '{"foo":"bar"}', @d.to_json
     end
+
+    should "dup the underlying hash" do
+      h1 = @d.to_hash
+      d2 = @d.dup
+      h2 = d2.to_hash
+      assert_equal h1, h2
+      assert h1.object_id != h2.object_id
+    end
   end
   
   context "subclass of DelegateDoc" do
