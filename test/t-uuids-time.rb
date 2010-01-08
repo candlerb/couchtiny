@@ -36,5 +36,13 @@ class TestUUIDSTime < Test::Unit::TestCase
       assert_equal 1, u2.to_i(16) - u1.to_i(16)
       assert_equal 1, u3.to_i(16) - u2.to_i(16)
     end
+
+    should "allocate bulk uuids at given time" do
+      gen = @uuids.bulk(:time => Time.at(1_000_000_000.5))
+      u1 = gen.call
+      u2 = gen.call
+      assert_equal 1_000_000_000_500, u1[0,12].to_i(16)
+      assert_equal 1_000_000_000_500, u2[0,12].to_i(16)
+    end
   end
 end

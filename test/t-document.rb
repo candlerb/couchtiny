@@ -3,7 +3,9 @@ require 'couchtiny'
 require 'couchtiny/document'
 
 class Foo < CouchTiny::Document
-  use_database CouchTiny::Database.new(CouchTiny::Server.new(:url=>SERVER_URL), DATABASE_NAME)
+  use_database CouchTiny::Database.new(
+    CouchTiny::Server.new(:url=>SERVER_URL, :uuid_generator=>CouchTiny::UUIDS::Time.new),
+    DATABASE_NAME)
   define_view "test_by_tag", <<-MAP
     function(doc) {
       if (doc.tag) {
@@ -467,6 +469,13 @@ class TestDocument < Test::Unit::TestCase
 
         assert_equal 4, Foo.count(:all_classes => true)
       end
+    end
+
+    should "bulk_save create docs with specified timestamp in UUID" do
+      # This depends on us using the CouchTiny::UUIDS::Time generator
+      @res = Foo.bulk_save [@d, @f], :time => Time.at(1_000_000_000.5)
+      assert_equal 1_000_000_000_500, @d['_id'][0,12].to_i(16)
+      assert_equal 1_000_000_000_500, @f['_id'][0,12].to_i(16)
     end
   end
 

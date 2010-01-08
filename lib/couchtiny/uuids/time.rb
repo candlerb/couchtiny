@@ -21,6 +21,12 @@ module CouchTiny::UUIDS
   #       Time.at(id[0,12].to_i(16) / 1000.0) rescue nil
   #     end
   #   end
+  #
+  # Note: this is *not* the same as you get with
+  #    [uuids]
+  #    algorithm = utc_random
+  # in more recent couchdb. In that, the time increments (by 1us) for each
+  # document. I want to be able to bulk_save documents with identical timestamps.
 
   class Time
     # Return one uuid
@@ -31,15 +37,19 @@ module CouchTiny::UUIDS
     # Return an object which returns consecutive uuids. This is intended
     # for bulk inserts so that the insertion order can be retained.
     # (The returned object is not thread-safe)
-    def bulk
-      Seq.new
+    #
+    # To allow a batch which both creates and updates records to have
+    # exactly matching timestamps, you can pass in the time as option :time.
+    def bulk(opt={})
+      Seq.new(opt[:time])
     end
 
     class Seq #:nodoc:
       RAND_SIZE = (1<<64) - (1<<32)  #:nodoc:
 
-      def initialize
-        @ms = (::Time.now.to_f * 1000.0).to_i   # compatible with Javascript Date
+      def initialize(time = nil)
+        time ||= ::Time.now
+        @ms = ((time.tv_sec * 1000) + (time.tv_usec / 1000)).to_i   # compatible with Javascript Date
         @pid = (Process.pid rescue rand(65536)) & 0xffff
         @seq = nil
       end

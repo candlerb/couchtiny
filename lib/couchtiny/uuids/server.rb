@@ -20,7 +20,7 @@ module CouchTiny::UUIDS
     end
 
     # For this class, bulk uuid generation is the same as normal generation
-    def bulk
+    def bulk(opt={})
       self
     end
 

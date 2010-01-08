@@ -7,7 +7,7 @@ class TestServer < Test::Unit::TestCase
     def initialize(arr)
       @arr = arr
     end
-    def bulk
+    def bulk(opt={})
       lambda { @arr.shift }
     end
   end

@@ -112,7 +112,7 @@ module CouchTiny
       bulk_gen = nil
       docs.each do |doc|
         next if doc['_id']
-        bulk_gen ||= @server.uuid_generator.bulk
+        bulk_gen ||= @server.uuid_generator.bulk(opt)
         doc['_id'] = bulk_gen.call
       end
       result = _bulk_docs(docs, opt)
