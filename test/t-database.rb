@@ -280,7 +280,7 @@ class TestServer < Test::Unit::TestCase
       e = assert_raises(RestClient::RequestFailed) {
         @database.all_docs(:reduce=>"flurble")
       }
-      assert_equal '400 query_parse_error (Invalid value for boolean paramter: "flurble")', e.message
+      assert_equal '400 query_parse_error (Invalid boolean parameter: "flurble")', e.message
     end
 
     # 401: RestClient::Unauthorized
