@@ -133,7 +133,7 @@ class TestServer < Test::Unit::TestCase
       res = @database._put "testdoc", doc
       
       doc = {"foo"=>456}
-      assert_raises(RestClient::RequestFailed) {
+      assert_raises(RestClient::Conflict) {
         @database._put "testdoc", doc
       }
       
@@ -277,7 +277,7 @@ class TestServer < Test::Unit::TestCase
     end
 
     should "show 400 exception" do
-      e = assert_raises(RestClient::RequestFailed) {
+      e = assert_raises(RestClient::BadRequest) {
         @database.all_docs(:reduce=>"flurble")
       }
       assert_equal '400 query_parse_error (Invalid boolean parameter: "flurble")', e.message
@@ -295,7 +295,7 @@ class TestServer < Test::Unit::TestCase
     should "show 409 exception" do
       doc = {'foo'=>456}
       @database._put 'testid', doc
-      e = assert_raises(RestClient::RequestFailed) {
+      e = assert_raises(RestClient::Conflict) {
         @database._put 'testid', doc
       }
       assert_equal '409 conflict (Document update conflict.)', e.message
@@ -303,7 +303,7 @@ class TestServer < Test::Unit::TestCase
 
     # Currently this gives a 405 with no JSON body, may change in future
     should "show exception with no body" do
-      e = assert_raises(RestClient::RequestFailed) {
+      e = assert_raises(RestClient::MethodNotAllowed) {
         @database.http.put "/#{DATABASE_NAME}/_bulk_docs", "[]", :content_type=>"application/octet-stream"
       }
       assert_match /^405/, e.message

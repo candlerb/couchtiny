@@ -22,8 +22,7 @@ module CouchTiny
       def get(path, raw=false)
         wrap_exception do
           res = ::RestClient.get("#{@url}#{path}", @headers)
-          res = parse(res) unless raw
-          res
+          raw ? res.to_s : parse(res)
         end
       end
       
@@ -59,7 +58,7 @@ module CouchTiny
       end
       
       def parse(str)
-        @parser.parse(str)
+        @parser.parse(str.to_s)
       end
       
       def unparse(obj)
